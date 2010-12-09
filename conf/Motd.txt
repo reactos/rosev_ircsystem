@@ -1,0 +1,3 @@
+Welcome to my little IRC Server :-)
+
+This is a MOTD like on any other server.
