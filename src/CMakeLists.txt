@@ -39,7 +39,7 @@ if(Subversion_SVN_EXECUTABLE)
 			"^(.*\n)?Revision: ([^\n]+).*"
 			"\\2"
 			VERSION_REVISION
-			SVNINFO_OUTPUT
+			${SVNINFO_OUTPUT}
 		)
 	endif()
 endif()

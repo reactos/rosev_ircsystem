@@ -17,6 +17,14 @@ static CLogBot LogBot(IRCServer);
 static CVoteBotManager VoteBotManager(IRCServer);
 
 static void
+_PrintVersion()
+{
+    std::cout << PRODUCT_NAME "\n";
+    std::cout << VERSION_COPYRIGHT "\n\n";
+    std::cout << "This is " VERSION_ID " built on " VERSION_DATE "\n";
+}
+
+static void
 _PrintUsage()
 {
     std::cout << PRODUCT_NAME "\n";
@@ -87,15 +95,17 @@ main(int argc, char* argv[])
     {
         if(Configuration.ParseParameters(argc, argv))
         {
+            if(Configuration.DoPrintVersion())
+                _PrintVersion();
 #ifdef WIN32
-            if(Configuration.DoInstallService())
+            else if(Configuration.DoInstallService())
                 InstallNTService(Configuration);
             else if(Configuration.DoUninstallService())
                 UninstallNTService();
             else if(Configuration.DoRunAsDaemonService())
                 RunAsNTService();
 #else
-            if(Configuration.DoRunAsDaemonService())
+            else if(Configuration.DoRunAsDaemonService())
                 RunAsPosixDaemon();
 #endif
             else

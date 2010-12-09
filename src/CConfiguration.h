@@ -18,6 +18,7 @@ public:
     const std::string& GetPidFile() const { return m_PidFile; }
 #endif
     bool BeVerbose() const { return m_Verbose; }
+    bool DoPrintVersion() const { return m_PrintVersion; }
     bool DoRunAsDaemonService() const { return m_RunAsDaemonService; }
     bool DoUseIPv4() const { return m_UseIPv4; }
     bool DoUseIPv6() const { return m_UseIPv6; }
@@ -44,6 +45,7 @@ private:
     std::vector<std::string> m_Motd;
     std::string m_Name;
     unsigned short m_Port;
+    bool m_PrintVersion;
     bool m_RunAsDaemonService;
     std::string m_SSLCertificateFile;
     std::string m_SSLPrivateKeyFile;

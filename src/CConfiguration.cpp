@@ -19,7 +19,8 @@ CConfiguration::CConfiguration()
 #else
         ("daemon", boost::program_options::value<bool>(&m_RunAsDaemonService)->zero_tokens()->default_value(false), "Run the program as a daemon")
 #endif
-        ("verbose", boost::program_options::value<bool>(&m_Verbose)->zero_tokens()->default_value(false), "Be verbose, ignored in daemon/service mode");
+        ("verbose", boost::program_options::value<bool>(&m_Verbose)->zero_tokens()->default_value(false), "Be verbose, ignored in daemon/service mode")
+        ("version", boost::program_options::value<bool>(&m_PrintVersion)->zero_tokens()->default_value(false), "Prints the version number and exits");
 }
 
 bool
@@ -58,11 +59,11 @@ CConfiguration::ParseParameters(int argc, char* argv[])
 
     boost::program_options::notify(TemporaryVariablesMap);
 
-    /* Show the usage if no config path has been specified (the only required argument except for the "uninstall-service" option) */
-    if(m_ConfigPath.empty())
+    /* Show the usage if the parameters are not correct */
+    if(m_ConfigPath.empty() && !m_PrintVersion)
     {
 #ifdef WIN32
-        /* The --uninstall-service option of the Win32 version is the only one which does not require an argument */
+        /* The --uninstall-service option of the Win32 version is another option which does not require an argument */
         if(!m_UninstallService)
         {
             return false;
