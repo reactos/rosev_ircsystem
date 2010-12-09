@@ -6,7 +6,8 @@
  * AUTHORS:    Colin Finck <colin@reactos.org>
  */
 
-#include "precomp.h"
+#include <precomp.h>
+#include <version.h>
 
 /**
  * Does most tasks described in http://www.enderunix.org/docs/eng/daemon.php before initializing the server.
@@ -19,12 +20,12 @@ RunAsPosixDaemon()
     if(ProcessId < 0)
     {
         /* fork() has failed */
-        BOOST_THROW_EXCEPTION("Failed to create the daemon process!") << boost::errinfo_api_function("fork") << boost::errinfo_errno(errno);
+        BOOST_THROW_EXCEPTION(Error("Failed to create the daemon process!") << boost::errinfo_api_function("fork") << boost::errinfo_errno(errno));
     }
     else if(ProcessId > 0)
     {
         /* We're the parent process, exit here */
-        return 0;
+        return;
     }
 
     /* Detach from the terminal that started us */
@@ -42,7 +43,7 @@ RunAsPosixDaemon()
     catch(std::exception& Exception)
     {
         /* Log all exceptions with diagnostic information to the syslog */
-        syslog(LOG_ERR, boost::diagnostic_information(Exception).c_str());
+        syslog(LOG_ERR, "%s", boost::diagnostic_information(Exception).c_str());
     }
 
     closelog();

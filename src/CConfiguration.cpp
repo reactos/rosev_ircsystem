@@ -59,8 +59,18 @@ CConfiguration::ParseParameters(int argc, char* argv[])
     boost::program_options::notify(TemporaryVariablesMap);
 
     /* Show the usage if no config path has been specified (the only required argument except for the "uninstall-service" option) */
-    if(m_ConfigPath.empty() && !m_UninstallService)
+    if(m_ConfigPath.empty())
+    {
+#ifdef WIN32
+        /* The --uninstall-service option of the Win32 version is the only one which does not require an argument */
+        if(!m_UninstallService)
+        {
+            return false;
+        }
+#else
         return false;
+#endif
+    }
 
     /* Disable verbosity if we're in daemon/service mode */
     if(m_RunAsDaemonService)

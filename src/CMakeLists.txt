@@ -160,6 +160,7 @@ if(WIN32)
 	)
 else()
 	list(APPEND SRCS run_posix_daemon.cpp)
+	list(APPEND LIBS pthread)
 endif()
 
 # Compiling and linking
