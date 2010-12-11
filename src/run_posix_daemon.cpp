@@ -25,7 +25,7 @@ RunAsPosixDaemon()
     else if(ProcessId > 0)
     {
         /* We're the parent process, exit here */
-        return;
+        return 0;
     }
 
     /* Detach from the terminal that started us */
