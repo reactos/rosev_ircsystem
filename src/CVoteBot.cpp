@@ -371,7 +371,6 @@ CVoteBot::SendPrivateMessage(CClient* Sender, const std::string& PrivateMessage)
         std::string Command(PrivateMessage);
         std::transform(Command.begin(), Command.end(), Command.begin(), toupper);
 
-        /* These commands can be run by multiple administrators */
         if(Command == "CANCEL")
         {
             _ReceiveCommand_CANCEL(Sender);
@@ -382,47 +381,48 @@ CVoteBot::SendPrivateMessage(CClient* Sender, const std::string& PrivateMessage)
             _ReceiveCommand_HELP(Sender);
             return;
         }
-
-        /* The following stuff must be handled by a single administrator */
-        if(!m_CurrentAdminNickname.empty() && m_CurrentAdminNickname != Sender->GetNickname())
+        else if(Command == "NEW" || Command == "START" || !m_VoteStarted)
         {
-            Sender->SendPrivateMessage(this, boost::str(boost::format("This VoteBot is currently being used by %s.") % m_CurrentAdminNickname));
-            Sender->SendPrivateMessage(this, "You have to type \"CANCEL\" if you want to cancel all running actions and use it yourself.");
-            return;
-        }
-
-        if(Command == "NEW")
-        {
-            _ReceiveCommand_NEW(Sender);
-            return;
-        }
-        else if(Command == "START")
-        {
-            _ReceiveCommand_START(Sender);
-            return;
-        }
-
-        /* If we're here, the administrator may have sent values for one of the commands. */
-        if(!m_VoteStarted)
-        {
-            if(m_Question.empty() && !m_CurrentAdminNickname.empty())
+            /* This stuff must be handled by a single administrator */
+            if(!m_CurrentAdminNickname.empty() && m_CurrentAdminNickname != Sender->GetNickname())
             {
-                /* The admin has just sent a question for a new vote */
-                m_Question = PrivateMessage;
-                Sender->SendPrivateMessage(this, boost::str(boost::format("Please enter a vote option now. The \"%s\" option will automatically be added to the available options.") % m_AbstentionTranslation));
-            }
-            else if(!m_Question.empty())
-            {
-                /* The admin has just sent a voting option for the current vote */
-                m_Options.push_back(PrivateMessage);
-                Sender->SendPrivateMessage(this, "This option has been added. Enter another one or \"START\" to start the vote.");
-            }
-            else
-            {
-                Sender->SendPrivateMessage(this, "Invalid command. Type \"HELP\" for more information.");
+                Sender->SendPrivateMessage(this, boost::str(boost::format("This VoteBot is currently being used by %s.") % m_CurrentAdminNickname));
+                Sender->SendPrivateMessage(this, "You have to type \"CANCEL\" if you want to cancel all running actions and use it yourself.");
+                return;
             }
 
-            return;
+            if(Command == "NEW")
+            {
+                _ReceiveCommand_NEW(Sender);
+                return;
+            }
+            else if(Command == "START")
+            {
+                _ReceiveCommand_START(Sender);
+                return;
+            }
+            else if(!m_VoteStarted)
+            {
+                /* If we're here, the administrator may have sent values for one of the commands. */
+                if(m_Question.empty() && !m_CurrentAdminNickname.empty())
+                {
+                    /* The admin has just sent a question for a new vote */
+                    m_Question = PrivateMessage;
+                    Sender->SendPrivateMessage(this, boost::str(boost::format("Please enter a vote option now. The \"%s\" option will automatically be added to the available options.") % m_AbstentionTranslation));
+                }
+                else if(!m_Question.empty())
+                {
+                    /* The admin has just sent a voting option for the current vote */
+                    m_Options.push_back(PrivateMessage);
+                    Sender->SendPrivateMessage(this, "This option has been added. Enter another one or \"START\" to start the vote.");
+                }
+                else
+                {
+                    Sender->SendPrivateMessage(this, "Invalid command. Type \"HELP\" for more information.");
+                }
+
+                return;
+            }
         }
     }
 

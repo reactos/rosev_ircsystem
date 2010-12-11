@@ -38,7 +38,7 @@
 #define ERR_NEEDMOREPARAMS   461
 
 /* ROSEV-SPECIFIC Settings */
-#define IDENTIFY_TIMEOUT     120
+#define IDENTIFY_TIMEOUT     240
 #define MOTD_LINE_LENGTH     80
 #define NICKNAME_LENGTH      30
 #define PING_INTERVAL        200
