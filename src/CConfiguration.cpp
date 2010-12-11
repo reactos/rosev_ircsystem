@@ -86,7 +86,10 @@ CConfiguration::ReadConfigFiles()
     /* Main config file */
     boost::program_options::options_description MainConfigOptions;
     MainConfigOptions.add_options()
-#ifndef WIN32
+#ifdef WIN32
+        /* Don't fail if the pidfile option is specified anyway (even if it's irrelevant for the Win32 version) */
+        ("general.pidfile", boost::program_options::value<std::string>())
+#else
         ("general.pidfile", boost::program_options::value<std::string>(&m_PidFile)->default_value(""))
 #endif
         ("general.name", boost::program_options::value<std::string>(&m_Name)->default_value(""))

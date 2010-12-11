@@ -12,7 +12,7 @@
 /**
  * Does most tasks described in http://www.enderunix.org/docs/eng/daemon.php before initializing the server.
  */
-void
+int
 RunAsPosixDaemon()
 {
     /* Fork the process to create a background one. */
@@ -34,11 +34,14 @@ RunAsPosixDaemon()
     /* We're the child process and can continue now. */
     SetSignals();
     openlog(APPLICATION_NAME, LOG_PID, LOG_DAEMON);
+    int ReturnValue = 1;
 
     try
     {
         InitializeServer();
         RunServerEventLoop();
+
+        ReturnValue = 0;
     }
     catch(std::exception& Exception)
     {
@@ -47,4 +50,6 @@ RunAsPosixDaemon()
     }
 
     closelog();
+
+    return ReturnValue;
 }

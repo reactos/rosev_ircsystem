@@ -99,12 +99,12 @@ extern void SetSignals();
 extern void ShutdownServer(int Signal = 0);
 
 /* run_console.cpp */
-extern void RunInConsole();
+extern int RunInConsole();
 
 /* run_nt_service.cpp */
-extern void InstallNTService(CConfiguration& Configuration);
-extern void RunAsNTService();
-extern void UninstallNTService();
+extern int InstallNTService(CConfiguration& Configuration);
+extern int RunAsNTService();
+extern int UninstallNTService();
 
 /* run_posix_daemon.cpp */
-extern void RunAsPosixDaemon();
+extern int RunAsPosixDaemon();

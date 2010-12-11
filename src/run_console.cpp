@@ -9,7 +9,7 @@
 #include <precomp.h>
 #include <version.h>
 
-void
+int
 RunInConsole()
 {
     Info("*******************************************************************************\n");
@@ -21,4 +21,6 @@ RunInConsole()
     SetSignals();
     InitializeServer();
     RunServerEventLoop();
+
+    return 0;
 }

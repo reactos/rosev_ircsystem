@@ -55,13 +55,6 @@ _AddEventSource()
         BOOST_THROW_EXCEPTION(Error("Failed to add the event source!") << boost::errinfo_api_function("RegSetValueExA") << Win32Error_Info(Result));
 }
 
-static void
-_ReportServiceStatus(DWORD NewState)
-{
-    ServiceStatus.dwCurrentState = NewState;
-    SetServiceStatus(ServiceStatusHandle, &ServiceStatus);
-}
-
 static DWORD WINAPI
 _ServiceControlHandlerEx(DWORD dwControl, DWORD dwEventType, LPVOID lpEventData, LPVOID lpContext)
 {
@@ -74,7 +67,8 @@ _ServiceControlHandlerEx(DWORD dwControl, DWORD dwEventType, LPVOID lpEventData,
 
         case SERVICE_CONTROL_SHUTDOWN:
         case SERVICE_CONTROL_STOP:
-            _ReportServiceStatus(SERVICE_STOP_PENDING);
+            ServiceStatus.dwCurrentState = SERVICE_STOP_PENDING;
+            SetServiceStatus(ServiceStatusHandle, &ServiceStatus);
             ShutdownServer();
 
             return NO_ERROR;
@@ -91,11 +85,12 @@ _ServiceMainA(DWORD dwArgc, LPSTR* lpszArgv)
     /* Report initial SERVICE_START_PENDING status */
     ServiceStatus.dwCheckPoint = 0;
     ServiceStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN;
+    ServiceStatus.dwCurrentState = SERVICE_START_PENDING;
     ServiceStatus.dwServiceSpecificExitCode = 0;
     ServiceStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
     ServiceStatus.dwWaitHint = 4000;
     ServiceStatus.dwWin32ExitCode = NO_ERROR;
-    _ReportServiceStatus(SERVICE_START_PENDING);
+    SetServiceStatus(ServiceStatusHandle, &ServiceStatus);
 
     /* Get us an event log handle for logging errors */
     HANDLE EventLogHandle = RegisterEventSourceA(NULL, PRODUCT_NAME);
@@ -104,7 +99,8 @@ _ServiceMainA(DWORD dwArgc, LPSTR* lpszArgv)
     try
     {
         InitializeServer();
-        _ReportServiceStatus(SERVICE_RUNNING);
+        ServiceStatus.dwCurrentState = SERVICE_RUNNING;
+        SetServiceStatus(ServiceStatusHandle, &ServiceStatus);
         RunServerEventLoop();
     }
     catch(std::exception& Exception)
@@ -113,14 +109,17 @@ _ServiceMainA(DWORD dwArgc, LPSTR* lpszArgv)
         std::string ExceptionMessage(boost::diagnostic_information(Exception));
         const char* InsertStrings[] = {ExceptionMessage.c_str()};
         ReportEventA(EventLogHandle, EVENTLOG_ERROR_TYPE, 0, GENERAL_EXCEPTION, NULL, 1, NULL, InsertStrings, NULL);
+
+        ServiceStatus.dwWin32ExitCode = ERROR_EXCEPTION_IN_SERVICE;
     }
 
     /* We're done */
-    _ReportServiceStatus(SERVICE_STOPPED);
     DeregisterEventSource(EventLogHandle);
+    ServiceStatus.dwCurrentState = SERVICE_STOPPED;
+    SetServiceStatus(ServiceStatusHandle, &ServiceStatus);
 }
 
-void
+int
 InstallNTService(CConfiguration& Configuration)
 {
     /* Get the path to our executable file and append the corresponding arguments to it */
@@ -177,9 +176,10 @@ InstallNTService(CConfiguration& Configuration)
     _AddEventSource();
 
     std::cout << "The service has been installed successfully!\n";
+    return 0;
 }
 
-void
+int
 RunAsNTService()
 {
     char ServiceName[] = APPLICATION_NAME;
@@ -191,9 +191,11 @@ RunAsNTService()
 
     if(!StartServiceCtrlDispatcherA(ServiceTable))
         BOOST_THROW_EXCEPTION(Error("Failed to start the service control dispatcher!") << Win32Error_Info(GetLastError()));
+
+    return 0;
 }
 
-void
+int
 UninstallNTService()
 {
     /* Get access to the service manager */
@@ -226,4 +228,6 @@ UninstallNTService()
 
     CloseServiceHandle(ServiceHandle);
     CloseServiceHandle(SCManagerHandle);
+
+    return 0;
 }

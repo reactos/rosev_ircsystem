@@ -9,6 +9,9 @@
 #include <precomp.h>
 #include <version.h>
 
+#ifndef WIN32
+static bool DeletePidFile = false;
+#endif
 static CConfiguration Configuration;
 static boost::asio::io_service IOService;
 static CIRCServer IRCServer(IOService, Configuration);
@@ -16,20 +19,21 @@ static CNickServ NickServ(IRCServer);
 static CLogBot LogBot(IRCServer);
 static CVoteBotManager VoteBotManager(IRCServer);
 
-static void
+static int
 _PrintVersion()
 {
     std::cout << PRODUCT_NAME "\n";
     std::cout << VERSION_COPYRIGHT "\n\n";
     std::cout << "This is " VERSION_ID " built on " VERSION_DATE "\n";
+
+    return 0;
 }
 
 static void
 _PrintUsage()
 {
     std::cout << PRODUCT_NAME "\n";
-    std::cout << "Usage: rosev_ircsystem [options] <configuration directory>\n";
-    std::cout << "\n";
+    std::cout << "Usage: rosev_ircsystem [options] <configuration directory>\n\n";
     std::cout << Configuration.GetCommandLineOptions();
 }
 
@@ -70,7 +74,8 @@ InitializeServer()
     if(!PidStream)
         BOOST_THROW_EXCEPTION(Error("Could not create the pidfile!") << boost::errinfo_file_name(PidFile));
 
-    PidStream << getpid();
+    DeletePidFile = true;
+    PidStream << getpid() << "\n";
     PidStream.close();
 #endif
 
@@ -96,22 +101,20 @@ main(int argc, char* argv[])
         if(Configuration.ParseParameters(argc, argv))
         {
             if(Configuration.DoPrintVersion())
-                _PrintVersion();
+                ReturnValue = _PrintVersion();
 #ifdef WIN32
             else if(Configuration.DoInstallService())
-                InstallNTService(Configuration);
+                ReturnValue = InstallNTService(Configuration);
             else if(Configuration.DoUninstallService())
-                UninstallNTService();
+                ReturnValue = UninstallNTService();
             else if(Configuration.DoRunAsDaemonService())
-                RunAsNTService();
+                ReturnValue = RunAsNTService();
 #else
             else if(Configuration.DoRunAsDaemonService())
-                RunAsPosixDaemon();
+                ReturnValue = RunAsPosixDaemon();
 #endif
             else
-                RunInConsole();
-
-            ReturnValue = 0;
+                ReturnValue = RunInConsole();
         }
         else
         {
@@ -125,10 +128,8 @@ main(int argc, char* argv[])
     }
 
 #ifndef WIN32
-    /* Remove the pidfile */
-    const std::string& PidFile = Configuration.GetPidFile();
-    if(!PidFile.empty())
-        unlink(PidFile.c_str());
+    if(DeletePidFile)
+        unlink(Configuration.GetPidFile().c_str());
 #endif
 
     return ReturnValue;
