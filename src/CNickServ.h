@@ -18,6 +18,8 @@ private:
     std::map<std::string, void (CNickServ::*)(CNetworkClient*, const std::vector<std::string>&)> m_CommandHandlers;
     std::map< std::string, boost::array<char, SHA512_DIGEST_LENGTH> > m_UserPasshashMap;
 
-    void _ReceiveCommand_HELP(CNetworkClient* Client, const std::vector<std::string>& Parameters);
-    void _ReceiveCommand_IDENTIFY(CNetworkClient* Client, const std::vector<std::string>& Parameters);
+    void _ReceiveCommand_GHOST(CNetworkClient* Sender, const std::vector<std::string>& Parameters);
+    void _ReceiveCommand_HELP(CNetworkClient* Sender, const std::vector<std::string>& Parameters);
+    void _ReceiveCommand_IDENTIFY(CNetworkClient* Sender, const std::vector<std::string>& Parameters);
+    bool _VerifyCredentials(CNetworkClient* Sender, const std::string& Nickname, const std::string& Password);
 };

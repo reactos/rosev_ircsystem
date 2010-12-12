@@ -12,6 +12,7 @@ CNickServ::CNickServ(CIRCServer& IRCServer)
     : CVirtualClient(IRCServer, "NickServ")
 {
     m_CommandHandlers = boost::assign::map_list_of
+        ("GHOST", &CNickServ::_ReceiveCommand_GHOST)
         ("HELP", &CNickServ::_ReceiveCommand_HELP)
         ("IDENTIFY", &CNickServ::_ReceiveCommand_IDENTIFY);
 }
@@ -44,6 +45,42 @@ CNickServ::Init()
 }
 
 void
+CNickServ::_ReceiveCommand_GHOST(CNetworkClient* Sender, const std::vector<std::string>& Parameters)
+{
+    if(Parameters.size() != 2)
+    {
+        Sender->SendNotice(this, "You need to supply the nickname and its password!");
+        return;
+    }
+
+    /* Check if this nickname is online */
+    std::string NicknameLowercased(Parameters[0]);
+    std::transform(NicknameLowercased.begin(), NicknameLowercased.end(), NicknameLowercased.begin(), tolower);
+
+    const std::map<std::string, CClient*>& Nicknames = m_IRCServer.GetNicknames();
+    std::map<std::string, CClient*>::const_iterator it = Nicknames.find(NicknameLowercased);
+    if(it == Nicknames.end())
+    {
+        Sender->SendNotice(this, "This nickname is not online!");
+        return;
+    }
+
+    /* Additional sanity checks */
+    if(!it->second->IsNetworkClient() || it->second == Sender)
+    {
+        Sender->SendNotice(this, "You cannot ghost this nickname!");
+        return;
+    }
+
+    if(!_VerifyCredentials(Sender, Parameters[0], Parameters[1]))
+        return;
+
+    /* The password is correct, so disconnect the user */
+    m_IRCServer.DisconnectNetworkClient(static_cast<CNetworkClient*>(it->second), "Disconnected by GHOST command");
+    Sender->SendNotice(this, "The nickname has been ghosted!");
+}
+
+void
 CNickServ::_ReceiveCommand_HELP(CNetworkClient* Sender, const std::vector<std::string>& Parameters)
 {
     if(Parameters.empty())
@@ -59,6 +96,7 @@ CNickServ::_ReceiveCommand_HELP(CNetworkClient* Sender, const std::vector<std::s
         Sender->SendNotice(this, "/NS HELP <command>");
         Sender->SendNotice(this, "");
         Sender->SendNotice(this, "This NickServ supports the following commands:");
+        Sender->SendNotice(this, "GHOST       Reclaims a used nickname.");
         Sender->SendNotice(this, "IDENTIFY    Identifies using a password.");
         Sender->SendNotice(this, "***** End of Help *****");
     }
@@ -67,7 +105,22 @@ CNickServ::_ReceiveCommand_HELP(CNetworkClient* Sender, const std::vector<std::s
         std::string ParameterUppercased(Parameters[0]);
         std::transform(ParameterUppercased.begin(), ParameterUppercased.end(), ParameterUppercased.begin(), toupper);
 
-        if(ParameterUppercased == "IDENTIFY")
+        if(ParameterUppercased == "GHOST")
+        {
+            Sender->SendNotice(this, "***** NickServ Help *****");
+            Sender->SendNotice(this, "Help for GHOST:");
+            Sender->SendNotice(this, "");
+            Sender->SendNotice(this, "GHOST reclaims a lost nickname by disconnecting its session.");
+            Sender->SendNotice(this, "This can be useful if you were unexpectedly disconected or");
+            Sender->SendNotice(this, "someone else is using your nickname.");
+            Sender->SendNotice(this, "");
+            Sender->SendNotice(this, "Syntax: GHOST <nickname> <password>");
+            Sender->SendNotice(this, "");
+            Sender->SendNotice(this, "Example:");
+            Sender->SendNotice(this, "   /NS GHOST Arthur ThisIsMyRandomPassword");
+            Sender->SendNotice(this, "***** End of Help *****");
+        }
+        else if(ParameterUppercased == "IDENTIFY")
         {
             Sender->SendNotice(this, "***** NickServ Help *****");
             Sender->SendNotice(this, "Help for IDENTIFY:");
@@ -99,27 +152,8 @@ CNickServ::_ReceiveCommand_IDENTIFY(CNetworkClient* Sender, const std::vector<st
         return;
     }
 
-    /* Find the user */
-    std::map< std::string, boost::array<char, SHA512_DIGEST_LENGTH> >::const_iterator it = m_UserPasshashMap.find(Sender->GetNickname());
-
-    if(it == m_UserPasshashMap.end())
-    {
-        Sender->SendNotice(this, "No password is known for this nickname!");
-        Sender->SendNotice(this, "Ensure that your nickname is spelled correctly (they are case-sensitive).");
+    if(!_VerifyCredentials(Sender, Sender->GetNickname(), Parameters[0]))
         return;
-    }
-
-    /* Build the SHA512 hash of the given password */
-    unsigned char Passhash[SHA512_DIGEST_LENGTH];
-    SHA512(reinterpret_cast<const unsigned char*>(Parameters[0].c_str()), Parameters[0].length(), Passhash);
-
-    /* Compare the hashes */
-    if(memcmp(it->second.data(), Passhash, SHA512_DIGEST_LENGTH))
-    {
-        Sender->SendNotice(this, "Invalid password!");
-        Sender->SendNotice(this, "Ensure that your password is spelled correctly (it is case-sensitive).");
-        return;
-    }
 
     /* The password is correct, so this user has successfully identified! */
     CClient::UserState State = Sender->GetUserState();
@@ -127,6 +161,34 @@ CNickServ::_ReceiveCommand_IDENTIFY(CNetworkClient* Sender, const std::vector<st
     Sender->SetUserState(State);
 
     Sender->SendNotice(this, "You have successfully identified!");
+}
+
+bool
+CNickServ::_VerifyCredentials(CNetworkClient* Sender, const std::string& Nickname, const std::string& Password)
+{
+    /* Find the user */
+    std::map< std::string, boost::array<char, SHA512_DIGEST_LENGTH> >::const_iterator it = m_UserPasshashMap.find(Nickname);
+
+    if(it == m_UserPasshashMap.end())
+    {
+        Sender->SendNotice(this, "No password is known for this nickname!");
+        Sender->SendNotice(this, "Ensure that your nickname is spelled correctly (it is case-sensitive).");
+        return false;
+    }
+
+    /* Build the SHA512 hash of the given password */
+    unsigned char Passhash[SHA512_DIGEST_LENGTH];
+    SHA512(reinterpret_cast<const unsigned char*>(Password.c_str()), Password.length(), Passhash);
+
+    /* Compare the hashes */
+    if(memcmp(it->second.data(), Passhash, SHA512_DIGEST_LENGTH))
+    {
+        Sender->SendNotice(this, "Invalid password!");
+        Sender->SendNotice(this, "Ensure that your password is spelled correctly (it is case-sensitive).");
+        return false;
+    }
+
+    return true;
 }
 
 void
