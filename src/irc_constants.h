@@ -41,6 +41,6 @@
 #define IDENTIFY_TIMEOUT     240
 #define MOTD_LINE_LENGTH     80
 #define NICKNAME_LENGTH      30
-#define PING_INTERVAL        200
-#define PING_TIMEOUT         120
+#define PING_INTERVAL        120
+#define PING_TIMEOUT         60
 #define REGISTRATION_TIMEOUT 120

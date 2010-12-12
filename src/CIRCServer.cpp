@@ -126,7 +126,7 @@ CIRCServer::DisconnectNetworkClient(CNetworkClient* Client, const std::string& R
         if(!JoinedChannels.empty())
         {
             std::set<CClient*> HandledClients;
-            std::string Response(boost::str(boost::format(":%s QUIT") % Client->GetPrefix()));
+            std::string Response(boost::str(boost::format(":%s QUIT :%s") % Client->GetPrefix() % Reason));
 
             for(std::set<CChannel*>::const_iterator ChannelIt = JoinedChannels.begin(); ChannelIt != JoinedChannels.end(); ++ChannelIt)
             {

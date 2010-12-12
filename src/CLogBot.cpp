@@ -77,12 +77,12 @@ CLogBot::_LogMessage_PRIVMSG(CClient* Sender, const std::vector<std::string>& Pa
 void
 CLogBot::_LogMessage_QUIT(CClient* Sender, const std::vector<std::string>& Parameters)
 {
-    /* Expect no parameters */
-    assert(Parameters.empty());
+    /* Expect one parameter */
+    assert(Parameters.size() == 1);
 
     /* Report the QUIT for every logged channel this user is a member of */
     const boost::ptr_map<std::string, CChannel>& Channels = m_IRCServer.GetChannels();
-    std::string LogMessage(boost::str(boost::format("%s %s has quit the server\n") % _GetLogTimestamp() % Sender->GetNickname()));
+    std::string LogMessage(boost::str(boost::format("%s %s has quit the server (%s)\n") % _GetLogTimestamp() % Sender->GetNickname() % Parameters[0]));
 
     for(boost::ptr_map<std::string, std::ofstream>::iterator ChannelStreamIt = m_ChannelStreamMap.begin(); ChannelStreamIt != m_ChannelStreamMap.end(); ++ChannelStreamIt)
     {
