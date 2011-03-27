@@ -2,7 +2,7 @@
  * PROJECT:    ReactOS Deutschland e.V. IRC System
  * LICENSE:    GNU GPL v2 or any later version as published by the Free Software Foundation
  *             with the additional exemption that compiling, linking, and/or using OpenSSL is allowed
- * COPYRIGHT:  Copyright 2010 ReactOS Deutschland e.V. <deutschland@reactos.org>
+ * COPYRIGHT:  Copyright 2010-2011 ReactOS Deutschland e.V. <deutschland@reactos.org>
  * AUTHORS:    Colin Finck <colin@reactos.org>
  */
 
@@ -30,6 +30,7 @@ public:
     unsigned short GetPort() const { return m_Port; }
     const std::string& GetSSLCertificateFile() const { return m_SSLCertificateFile; }
     const std::string& GetSSLPrivateKeyFile() const { return m_SSLPrivateKeyFile; }
+    const std::map< std::string, boost::array<char, SHA512_DIGEST_LENGTH> >& GetUserPasshashMap() const { return m_UserPasshashMap; }
     bool ParseParameters(int argc, char* argv[]);
     void ReadConfigFiles();
 
@@ -52,5 +53,6 @@ private:
     bool m_Verbose;
     bool m_UseIPv4;
     bool m_UseIPv6;
+    std::map< std::string, boost::array<char, SHA512_DIGEST_LENGTH> > m_UserPasshashMap;
     bool m_UseSSL;
 };

@@ -2,7 +2,7 @@
  * PROJECT:    ReactOS Deutschland e.V. IRC System
  * LICENSE:    GNU GPL v2 or any later version as published by the Free Software Foundation
  *             with the additional exemption that compiling, linking, and/or using OpenSSL is allowed
- * COPYRIGHT:  Copyright 2010 ReactOS Deutschland e.V. <deutschland@reactos.org>
+ * COPYRIGHT:  Copyright 2010-2011 ReactOS Deutschland e.V. <deutschland@reactos.org>
  * AUTHORS:    Colin Finck <colin@reactos.org>
  */
 
@@ -49,11 +49,12 @@
 #endif
 
 #define CHANNELS_FILE           PATH_SEPARATOR "Channels.ini"
+#define CHANNEL_OBSERVERS_FILE  PATH_SEPARATOR "Channel_Observers.ini"
 #define CHANNEL_USERS_FILE      PATH_SEPARATOR "Channel_Users.ini"
 #define LOGBOT_FILE             PATH_SEPARATOR "LogBot.ini"
 #define MAIN_CONFIG_FILE        PATH_SEPARATOR "MainConfig.ini"
 #define MOTD_FILE               PATH_SEPARATOR "Motd.txt"
-#define NICKSERV_USERS_FILE     PATH_SEPARATOR "NickServ_Users.ini"
+#define USERS_FILE              PATH_SEPARATOR "Users.ini"
 #define VOTEBOTMANAGER_FILE     PATH_SEPARATOR "VoteBotManager.ini"
 #define VOTEBOT_INDIVIDUAL_FILE PATH_SEPARATOR "VoteBot_%s.ini"
 

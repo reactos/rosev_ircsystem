@@ -2,7 +2,7 @@
  * PROJECT:    ReactOS Deutschland e.V. IRC System
  * LICENSE:    GNU GPL v2 or any later version as published by the Free Software Foundation
  *             with the additional exemption that compiling, linking, and/or using OpenSSL is allowed
- * COPYRIGHT:  Copyright 2010 ReactOS Deutschland e.V. <deutschland@reactos.org>
+ * COPYRIGHT:  Copyright 2010-2011 ReactOS Deutschland e.V. <deutschland@reactos.org>
  * AUTHORS:    Colin Finck <colin@reactos.org>
  */
 
@@ -42,6 +42,25 @@ CIRCServer::_AddAcceptor(const boost::asio::ip::tcp::acceptor::protocol_type& Pr
     _Accept(Acceptor.get());
 
     m_Acceptors.push_back(Acceptor);
+}
+
+void
+CIRCServer::_CheckForPresetNickname(CNetworkClient* Client)
+{
+    /* If this is a preset nickname, the user needs to identify within a given timeframe. */
+    const std::map< std::string, boost::array<char, SHA512_DIGEST_LENGTH> >& UserPasshashMap = m_Configuration.GetUserPasshashMap();
+    if(UserPasshashMap.find(Client->GetNicknameLowercased()) != UserPasshashMap.end())
+    {
+        Client->SendNotice(NULL, "This nickname is protected.");
+        Client->SendNotice(NULL, "Please identify with your password in the next " BOOST_PP_STRINGIZE(IDENTIFY_TIMEOUT) " seconds or you will be disconnected.");
+        Client->SendNotice(NULL, "Use the command /NS IDENTIFY <password> to do so.");
+        Client->RestartIdentifyTimer();
+    }
+    else
+    {
+        /* It isn't, so cancel the identify timer and force the client to respond to regular pings again. */
+        Client->RestartPingTimer();
+    }
 }
 
 void
@@ -94,10 +113,8 @@ CIRCServer::_WelcomeClient(CNetworkClient* Client)
        Due to some reason, ircd-seven and other IRC servers use the nickname instead of a full prefix here. */
     Client->SendIRCMessage(boost::str(boost::format(":%1% MODE %1% :+i") % Client->GetNickname()));
 
-    /* The client also has to identify within a given timeframe. */
-    Client->SendNotice(NULL, "Please identify with your password in the next " BOOST_PP_STRINGIZE(IDENTIFY_TIMEOUT) " seconds or you will be disconnected.");
-    Client->SendNotice(NULL, "Use the command /NS IDENTIFY <password> to do so.");
-    Client->StartIdentifyTimer();
+    /* At the end of the initial login, the user should know whether he needs to identify or not. */
+    _CheckForPresetNickname(Client);
 }
 
 void
@@ -132,14 +149,14 @@ CIRCServer::DisconnectNetworkClient(CNetworkClient* Client, const std::string& R
             {
                 /* Send a QUIT response to all members of all channels, in which this client is a member of,
                    but only once for each member. */
-                const std::set<CClient*>& Clients = (*ChannelIt)->GetClients();
-                for(std::set<CClient*>::const_iterator ClientIt = Clients.begin(); ClientIt != Clients.end(); ++ClientIt)
+                const std::map<CClient*, CChannel::ClientStatus>& Clients = (*ChannelIt)->GetClients();
+                for(std::map<CClient*, CChannel::ClientStatus>::const_iterator ClientIt = Clients.begin(); ClientIt != Clients.end(); ++ClientIt)
                 {
-                    if(HandledClients.find(*ClientIt) == HandledClients.end())
+                    if(HandledClients.find(ClientIt->first) == HandledClients.end())
                     {
                         /* This client has not received the QUIT message yet */
-                        (*ClientIt)->SendIRCMessage(Response);
-                        HandledClients.insert(*ClientIt);
+                        ClientIt->first->SendIRCMessage(Response);
+                        HandledClients.insert(ClientIt->first);
                     }
                 }
 
@@ -213,6 +230,20 @@ CIRCServer::Init()
         }
     }
 
+    /* Check which channels allow observers. */
+    std::set<std::string> ChannelObserversSet;
+
+    boost::program_options::parsed_options ChannelObserversParsedOptions(boost::program_options::parse_config_file<char>(std::string(ConfigPath).append(CHANNEL_OBSERVERS_FILE).c_str(), NULL, true));
+    for(std::vector< boost::program_options::basic_option<char> >::const_iterator OptionIt = ChannelObserversParsedOptions.options.begin(); OptionIt != ChannelObserversParsedOptions.options.end(); ++OptionIt)
+    {
+        /* Lowercase the channel name for comparison */
+        std::string ChannelNameLowercased(OptionIt->string_key);
+        std::transform(ChannelNameLowercased.begin(), ChannelNameLowercased.end(), ChannelNameLowercased.begin(), tolower);
+
+        if(OptionIt->value[0] == "true")
+            ChannelObserversSet.insert(ChannelNameLowercased);
+    }
+
     /* Add the preset channels */
     boost::program_options::parsed_options ChannelsParsedOptions(boost::program_options::parse_config_file<char>(std::string(ConfigPath).append(CHANNELS_FILE).c_str(), NULL, true));
     if(ChannelsParsedOptions.options.empty())
@@ -238,8 +269,12 @@ CIRCServer::Init()
         if(ChannelUsersIt == ChannelUsersMap.end())
             BOOST_THROW_EXCEPTION(Error("No allowed users were set for this channel!") << ChannelName_Info(OptionIt->string_key));
 
+        /* Check whether observers are allowed for this channel. */
+        std::set<std::string>::const_iterator ChannelObserversIt = ChannelObserversSet.find(ChannelNameLowercased);
+        bool AllowObservers = (ChannelObserversIt != ChannelObserversSet.end());
+
         /* Insert the channel name lowercased for comparisons, but leave the original spelling in the object */
-        m_Channels.insert(ChannelNameLowercased, new CChannel(OptionIt->string_key, OptionIt->value[0], ChannelUsersIt->second));
+        m_Channels.insert(ChannelNameLowercased, new CChannel(OptionIt->string_key, OptionIt->value[0], ChannelUsersIt->second, AllowObservers));
     }
 
     /* Set up an acceptor for every IP stack (if desired) */
@@ -308,10 +343,11 @@ CIRCServer::ReceiveMessage_JOIN(CClient* Sender, const std::vector<std::string>&
         }
     }
 
-    /* ROSEV-SPECIFIC: Only allow joining after the user has identified. */
-    if(!Sender->GetUserState().IsIdentified)
+    /* ROSEV-SPECIFIC: Don't allow joining if the user still has to identify. */
+    const std::map< std::string, boost::array<char, SHA512_DIGEST_LENGTH> >& UserPasshashMap = m_Configuration.GetUserPasshashMap();
+    if(UserPasshashMap.find(Sender->GetNicknameLowercased()) != UserPasshashMap.end() && !Sender->GetUserState().IsIdentified)
     {
-        Sender->SendNotice(NULL, "You have to identify before joining a channel!");
+        Sender->SendNotice(NULL, "Please identify first!");
         return;
     }
 
@@ -340,27 +376,30 @@ CIRCServer::ReceiveMessage_JOIN(CClient* Sender, const std::vector<std::string>&
         }
         else
         {
-            /* ROSEV-SPECIFIC: For network clients, only allow joining channels this user is allowed to join */
+            /* ROSEV-SPECIFIC: Virtual clients and clients on the list of allowed users automatically get voice.
+               If we don't allow observers, only these clients may even join. */
             const std::set<std::string>& AllowedUsers = it->second->GetAllowedUsers();
-            if(Sender->IsNetworkClient() && AllowedUsers.find(Sender->GetNicknameLowercased()) == AllowedUsers.end())
+            bool IsVoicedClient = (!Sender->IsNetworkClient() || AllowedUsers.find(Sender->GetNicknameLowercased()) != AllowedUsers.end());
+
+            if(!IsVoicedClient && !it->second->DoAllowObservers())
             {
-                Sender->SendNotice(NULL, "You are not on the list of allowed users for this channel!");
+                Sender->SendNotice(NULL, "You are not allowed to join this channel!");
             }
             else
             {
                 /* Check if the user is already part of this channel */
-                const std::set<CClient*>& Clients = it->second->GetClients();
+                const std::map<CClient*, CChannel::ClientStatus>& Clients = it->second->GetClients();
                 if(Clients.find(Sender) == Clients.end())
                 {
                     /* Join this channel */
-                    it->second->AddClient(Sender);
+                    it->second->AddClient(Sender, (IsVoicedClient ? CChannel::Voice : CChannel::NoStatus));
                     Sender->AddJoinedChannel(it->second);
 
                     /* Send a JOIN response to all channel members (including this new one) */
                     std::string Response(boost::str(boost::format(":%s JOIN #%s") % Sender->GetPrefix() % it->second->GetName()));
 
-                    for(std::set<CClient*>::const_iterator ClientIt = Clients.begin(); ClientIt != Clients.end(); ++ClientIt)
-                        (*ClientIt)->SendIRCMessage(Response);
+                    for(std::map<CClient*, CChannel::ClientStatus>::const_iterator ClientIt = Clients.begin(); ClientIt != Clients.end(); ++ClientIt)
+                        ClientIt->first->SendIRCMessage(Response);
 
                     /* Send the results of respective TOPIC and NAMES commands */
                     std::vector<std::string> CallParameters;
@@ -434,15 +473,18 @@ CIRCServer::ReceiveMessage_NAMES(CClient* Sender, const std::vector<std::string>
         {
             /* Return a string list of joined nicknames.
                ROSEV-SPECIFIC: We don't support any operators or voiced people. */
-            const std::set<CClient*>& Clients = it->second->GetClients();
+            const std::map<CClient*, CChannel::ClientStatus>& Clients = it->second->GetClients();
             std::string NicknameList;
 
-            for(std::set<CClient*>::const_iterator ClientIt = Clients.begin(); ClientIt != Clients.end(); ++ClientIt)
+            for(std::map<CClient*, CChannel::ClientStatus>::const_iterator ClientIt = Clients.begin(); ClientIt != Clients.end(); ++ClientIt)
             {
                 if(!NicknameList.empty())
                     NicknameList.append(" ");
 
-                NicknameList.append((*ClientIt)->GetNickname());
+                if(ClientIt->second == CChannel::Voice)
+                    NicknameList.append("+");
+
+                NicknameList.append(ClientIt->first->GetNickname());
             }
 
             Sender->SendNumericReply(RPL_NAMREPLY) % Channel % NicknameList;
@@ -520,12 +562,19 @@ CIRCServer::ReceiveMessage_NICK(CClient* Sender, const std::vector<std::string>&
     if(!CurrentNickname.empty())
     {
         const std::string& CurrentNicknameLowercased = NetSender->GetNicknameLowercased();
-
         std::map<std::string, CClient*>::iterator it = m_Nicknames.find(CurrentNicknameLowercased);
+
+        /* ROSEV-SPECIFIC: Don't allow changing the nickname if the user has already identified */
         if(it->second->GetUserState().IsIdentified)
         {
-            /* ROSEV-SPECIFIC: Don't allow changing the nickname if the user has already identified */
             NetSender->SendNotice(NULL, "You cannot change your nickname after having identified!");
+            return;
+        }
+
+        /* ROSEV-SPECIFIC: Don't allow changing the nickname if the user has already joined a channel */
+        if(it->second->GetJoinedChannels().size() > 0)
+        {
+            NetSender->SendNotice(NULL, "You cannot change your nickname after having joined a channel!");
             return;
         }
 
@@ -537,17 +586,22 @@ CIRCServer::ReceiveMessage_NICK(CClient* Sender, const std::vector<std::string>&
     m_Nicknames.insert(std::make_pair(NewNicknameLowercased, NetSender));
     NetSender->SetNickname(NewNickname, NewNicknameLowercased);
 
-    /* Check if we have already registered with a nickname before */
+    /* Check if we have already registered with a nickname before. */
     CClient::UserState State = NetSender->GetUserState();
     if(_IsUserRegistered(State))
-        return;
+    {
+        /* The nickname has just been changed, so we need to recheck whether it's a preset one. */
+        _CheckForPresetNickname(NetSender);
+    }
+    else
+    {
+        /* We have not, so store this and send the welcome messages if the USER message has also been sent. */
+        State.HasSentNickMessage = true;
+        NetSender->SetUserState(State);
 
-    /* We have not, so store this and send the welcome messages */
-    State.HasSentNickMessage = true;
-    NetSender->SetUserState(State);
-
-    if(_IsUserRegistered(State))
-        _WelcomeClient(NetSender);
+        if(State.HasSentUserMessage)
+            _WelcomeClient(NetSender);
+    }
 }
 
 /**
@@ -619,7 +673,7 @@ CIRCServer::ReceiveMessage_PART(CClient* Sender, const std::vector<std::string>&
         else
         {
             /* Check if the user is part of this channel */
-            const std::set<CClient*>& Clients = it->second->GetClients();
+            const std::map<CClient*, CChannel::ClientStatus>& Clients = it->second->GetClients();
             if(Clients.find(Sender) == Clients.end())
             {
                 Sender->SendNumericReply(ERR_NOTONCHANNEL) % Channel;
@@ -630,8 +684,8 @@ CIRCServer::ReceiveMessage_PART(CClient* Sender, const std::vector<std::string>&
                ROSEV-SPECIFIC: Messages supplied to the PART command are ignored. */
             std::string Response(boost::str(boost::format(":%s PART #%s") % Sender->GetPrefix() % it->second->GetName()));
 
-            for(std::set<CClient*>::const_iterator ClientIt = Clients.begin(); ClientIt != Clients.end(); ++ClientIt)
-                (*ClientIt)->SendIRCMessage(Response);
+            for(std::map<CClient*, CChannel::ClientStatus>::const_iterator ClientIt = Clients.begin(); ClientIt != Clients.end(); ++ClientIt)
+                ClientIt->first->SendIRCMessage(Response);
 
             /* Leave the channel */
             it->second->RemoveClient(Sender);
@@ -725,11 +779,11 @@ CIRCServer::ReceiveMessage_PRIVMSG(CClient* Sender, const std::vector<std::strin
             return;
         }
 
-        /* Is this client part of this channel? */
-        const std::set<CChannel*>& JoinedChannels = Sender->GetJoinedChannels();
-        std::set<CChannel*>::const_iterator JoinedIt = JoinedChannels.find(const_cast<CChannel*>(it->second));
+        /* ROSEV-SPECIFIC: Only joined clients with voice status may send anything. */
+        const std::map<CClient*, CChannel::ClientStatus>& Clients = it->second->GetClients();
+        std::map<CClient*, CChannel::ClientStatus>::const_iterator ClientIt = Clients.find(Sender);
 
-        if(JoinedIt == JoinedChannels.end())
+        if(ClientIt == Clients.end() || ClientIt->second == CChannel::NoStatus)
         {
             Sender->SendNumericReply(ERR_CANNOTSENDTOCHAN) % Channel;
             return;
@@ -737,11 +791,10 @@ CIRCServer::ReceiveMessage_PRIVMSG(CClient* Sender, const std::vector<std::strin
 
         /* Send the message to all channel members but not back to this client */
         std::string Response(boost::str(boost::format(":%s PRIVMSG #%s :%s") % Sender->GetPrefix() % it->second->GetName() % Parameters[1]));
-        const std::set<CClient*>& Clients = it->second->GetClients();
 
-        for(std::set<CClient*>::const_iterator ClientIt = Clients.begin(); ClientIt != Clients.end(); ++ClientIt)
-            if(*ClientIt != Sender)
-                (*ClientIt)->SendIRCMessage(Response);
+        for(std::map<CClient*, CChannel::ClientStatus>::const_iterator ClientIt = Clients.begin(); ClientIt != Clients.end(); ++ClientIt)
+            if(ClientIt->first != Sender)
+                ClientIt->first->SendIRCMessage(Response);
     }
     else
     {
@@ -838,14 +891,15 @@ CIRCServer::ReceiveMessage_USER(CClient* Sender, const std::vector<std::string>&
 
     /* Modify and check the user state */
     CClient::UserState State = NetSender->GetUserState();
-    if(_IsUserRegistered(State))
-        return;
+    if(!_IsUserRegistered(State))
+    {
+        /* We have not yet registered, so store this and send the welcome messages if the NICK message has also been sent. */
+        State.HasSentUserMessage = true;
+        NetSender->SetUserState(State);
 
-    State.HasSentUserMessage = true;
-    NetSender->SetUserState(State);
-
-    if(_IsUserRegistered(State))
-        _WelcomeClient(NetSender);
+        if(State.HasSentNickMessage)
+            _WelcomeClient(NetSender);
+    }
 }
 
 /**

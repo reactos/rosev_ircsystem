@@ -2,7 +2,7 @@
  * PROJECT:    ReactOS Deutschland e.V. IRC System
  * LICENSE:    GNU GPL v2 or any later version as published by the Free Software Foundation
  *             with the additional exemption that compiling, linking, and/or using OpenSSL is allowed
- * COPYRIGHT:  Copyright 2010 ReactOS Deutschland e.V. <deutschland@reactos.org>
+ * COPYRIGHT:  Copyright 2010-2011 ReactOS Deutschland e.V. <deutschland@reactos.org>
  * AUTHORS:    Colin Finck <colin@reactos.org>
  */
 
@@ -267,6 +267,14 @@ CNetworkClient::Init()
 }
 
 void
+CNetworkClient::RestartIdentifyTimer()
+{
+    m_Timer.cancel();
+    m_Timer.expires_from_now(boost::posix_time::seconds(IDENTIFY_TIMEOUT));
+    m_Timer.async_wait(boost::bind(&CNetworkClient::_IdentifyDeadline, shared_from_this(), boost::asio::placeholders::error));
+}
+
+void
 CNetworkClient::RestartPingTimer()
 {
     /* Set the timer to issue the next PING command in PING_INTERVAL seconds */
@@ -343,12 +351,4 @@ CNetworkClient::Shutdown()
     Socket.close();
 
     m_ShutdownCompleted = true;
-}
-
-void
-CNetworkClient::StartIdentifyTimer()
-{
-    m_Timer.cancel();
-    m_Timer.expires_from_now(boost::posix_time::seconds(IDENTIFY_TIMEOUT));
-    m_Timer.async_wait(boost::bind(&CNetworkClient::_IdentifyDeadline, shared_from_this(), boost::asio::placeholders::error));
 }

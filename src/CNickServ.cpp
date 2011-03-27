@@ -2,7 +2,7 @@
  * PROJECT:    ReactOS Deutschland e.V. IRC System
  * LICENSE:    GNU GPL v2 or any later version as published by the Free Software Foundation
  *             with the additional exemption that compiling, linking, and/or using OpenSSL is allowed
- * COPYRIGHT:  Copyright 2010 ReactOS Deutschland e.V. <deutschland@reactos.org>
+ * COPYRIGHT:  Copyright 2010-2011 ReactOS Deutschland e.V. <deutschland@reactos.org>
  * AUTHORS:    Colin Finck <colin@reactos.org>
  */
 
@@ -20,26 +20,6 @@ CNickServ::CNickServ(CIRCServer& IRCServer)
 bool
 CNickServ::Init()
 {
-    /* Load the NickServ-specific configuration (just the extra Users file for now) */
-    std::string ConfigFile(m_IRCServer.GetConfiguration().GetConfigPath());
-    ConfigFile.append(NICKSERV_USERS_FILE);
-
-    boost::program_options::parsed_options UsersParsedOptions(boost::program_options::parse_config_file<char>(ConfigFile.c_str(), NULL, true));
-    for(std::vector< boost::program_options::basic_option<char> >::const_iterator it = UsersParsedOptions.options.begin(); it != UsersParsedOptions.options.end(); ++it)
-    {
-        /* Convert the hexadecimal string passhash into a binary one */
-        const std::string& HexPasshash = it->value[0];
-        boost::array<char, SHA512_DIGEST_LENGTH> BinaryPasshash;
-
-        if(HexPasshash.length() != 2 * SHA512_DIGEST_LENGTH)
-            BOOST_THROW_EXCEPTION(Error("Length of a passhash must be 128 characters!") << Passhash_Info(HexPasshash));
-
-        for(int i = 0; i < SHA512_DIGEST_LENGTH; ++i)
-            BinaryPasshash[i] = static_cast<char>(strtol(HexPasshash.substr(2 * i, 2).c_str(), NULL, 16));
-
-        m_UserPasshashMap.insert(std::make_pair(it->string_key, BinaryPasshash));
-    }
-
     Info("NickServ is enabled.\n");
     return true;
 }
@@ -72,7 +52,7 @@ CNickServ::_ReceiveCommand_GHOST(CNetworkClient* Sender, const std::vector<std::
         return;
     }
 
-    if(!_VerifyCredentials(Sender, Parameters[0], Parameters[1]))
+    if(!_VerifyCredentials(Sender, NicknameLowercased, Parameters[1]))
         return;
 
     /* The password is correct, so disconnect the user */
@@ -152,7 +132,7 @@ CNickServ::_ReceiveCommand_IDENTIFY(CNetworkClient* Sender, const std::vector<st
         return;
     }
 
-    if(!_VerifyCredentials(Sender, Sender->GetNickname(), Parameters[0]))
+    if(!_VerifyCredentials(Sender, Sender->GetNicknameLowercased(), Parameters[0]))
         return;
 
     /* The password is correct, so this user has successfully identified! */
@@ -164,15 +144,15 @@ CNickServ::_ReceiveCommand_IDENTIFY(CNetworkClient* Sender, const std::vector<st
 }
 
 bool
-CNickServ::_VerifyCredentials(CNetworkClient* Sender, const std::string& Nickname, const std::string& Password)
+CNickServ::_VerifyCredentials(CNetworkClient* Sender, const std::string& NicknameLowercased, const std::string& Password)
 {
     /* Find the user */
-    std::map< std::string, boost::array<char, SHA512_DIGEST_LENGTH> >::const_iterator it = m_UserPasshashMap.find(Nickname);
+    const std::map< std::string, boost::array<char, SHA512_DIGEST_LENGTH> >& UserPasshashMap = m_IRCServer.GetConfiguration().GetUserPasshashMap();
+    std::map< std::string, boost::array<char, SHA512_DIGEST_LENGTH> >::const_iterator it = UserPasshashMap.find(NicknameLowercased);
 
-    if(it == m_UserPasshashMap.end())
+    if(it == UserPasshashMap.end())
     {
         Sender->SendNotice(this, "No password is known for this nickname!");
-        Sender->SendNotice(this, "Ensure that your nickname is spelled correctly (it is case-sensitive).");
         return false;
     }
 

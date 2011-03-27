@@ -2,7 +2,7 @@
  * PROJECT:    ReactOS Deutschland e.V. IRC System
  * LICENSE:    GNU GPL v2 or any later version as published by the Free Software Foundation
  *             with the additional exemption that compiling, linking, and/or using OpenSSL is allowed
- * COPYRIGHT:  Copyright 2010 ReactOS Deutschland e.V. <deutschland@reactos.org>
+ * COPYRIGHT:  Copyright 2010-2011 ReactOS Deutschland e.V. <deutschland@reactos.org>
  * AUTHORS:    Colin Finck <colin@reactos.org>
  */
 
@@ -26,7 +26,41 @@ CLogBot::_GetLogTimestamp()
 }
 
 void
-CLogBot::_LogJoinOrPart(CClient* Sender, const std::vector<std::string>& Parameters, const std::string& LogMessage)
+CLogBot::_LogMessage_JOIN(CClient* Sender, const std::vector<std::string>& Parameters)
+{
+    /* Expect a channel as the first and only parameter */
+    assert(Parameters.size() == 1);
+    assert(Parameters[0][0] == '#');
+
+    /* Lowercase it for searching */
+    std::string ChannelNameLowercased(Parameters[0].substr(1));
+    std::transform(ChannelNameLowercased.begin(), ChannelNameLowercased.end(), ChannelNameLowercased.begin(), tolower);
+
+    /* Check if we log this channel */
+    boost::ptr_map<std::string, std::ofstream>::iterator ChannelStreamIt = m_ChannelStreamMap.find(ChannelNameLowercased);
+    if(ChannelStreamIt == m_ChannelStreamMap.end())
+        return;
+
+    /* Determine the status of this client */
+    const boost::ptr_map<std::string, CChannel>& Channels = m_IRCServer.GetChannels();
+    boost::ptr_map<std::string, CChannel>::const_iterator ChannelIt = Channels.find(ChannelNameLowercased);
+    assert(ChannelIt != Channels.end());
+
+    const std::map<CClient*, CChannel::ClientStatus>& Clients = ChannelIt->second->GetClients();
+    std::map<CClient*, CChannel::ClientStatus>::const_iterator ClientIt = Clients.find(Sender);
+    assert(ClientIt != Clients.end());
+
+    /* Finally log the message */
+    (*ChannelStreamIt->second) << boost::str(boost::format("%s %s has joined %s%s\n")
+        % _GetLogTimestamp()
+        % Sender->GetNickname()
+        % Parameters[0]
+        % (ClientIt->second == CChannel::Voice ? " with voice status" : "")
+    );
+}
+
+void
+CLogBot::_LogMessage_PART(CClient* Sender, const std::vector<std::string>& Parameters)
 {
     /* Expect a channel as the first and only parameter */
     assert(Parameters.size() == 1);
@@ -39,20 +73,7 @@ CLogBot::_LogJoinOrPart(CClient* Sender, const std::vector<std::string>& Paramet
     /* Check if we log this channel and add a message in this case */
     boost::ptr_map<std::string, std::ofstream>::iterator ChannelStreamIt = m_ChannelStreamMap.find(ChannelNameLowercased);
     if(ChannelStreamIt != m_ChannelStreamMap.end())
-        (*ChannelStreamIt->second) << boost::str(boost::format(LogMessage) % _GetLogTimestamp() % Sender->GetNickname() % Parameters[0]);
-}
-
-
-void
-CLogBot::_LogMessage_JOIN(CClient* Sender, const std::vector<std::string>& Parameters)
-{
-    _LogJoinOrPart(Sender, Parameters, "%s %s has joined %s\n");
-}
-
-void
-CLogBot::_LogMessage_PART(CClient* Sender, const std::vector<std::string>& Parameters)
-{
-    _LogJoinOrPart(Sender, Parameters, "%s %s has left %s\n");
+        (*ChannelStreamIt->second) << boost::str(boost::format("%s %s has left %s\n") % _GetLogTimestamp() % Sender->GetNickname() % Parameters[0]);
 }
 
 void

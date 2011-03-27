@@ -2,7 +2,7 @@
  * PROJECT:    ReactOS Deutschland e.V. IRC System
  * LICENSE:    GNU GPL v2 or any later version as published by the Free Software Foundation
  *             with the additional exemption that compiling, linking, and/or using OpenSSL is allowed
- * COPYRIGHT:  Copyright 2010 ReactOS Deutschland e.V. <deutschland@reactos.org>
+ * COPYRIGHT:  Copyright 2010-2011 ReactOS Deutschland e.V. <deutschland@reactos.org>
  * AUTHORS:    Colin Finck <colin@reactos.org>
  */
 
@@ -16,10 +16,9 @@ public:
 
 private:
     std::map<std::string, void (CNickServ::*)(CNetworkClient*, const std::vector<std::string>&)> m_CommandHandlers;
-    std::map< std::string, boost::array<char, SHA512_DIGEST_LENGTH> > m_UserPasshashMap;
 
     void _ReceiveCommand_GHOST(CNetworkClient* Sender, const std::vector<std::string>& Parameters);
     void _ReceiveCommand_HELP(CNetworkClient* Sender, const std::vector<std::string>& Parameters);
     void _ReceiveCommand_IDENTIFY(CNetworkClient* Sender, const std::vector<std::string>& Parameters);
-    bool _VerifyCredentials(CNetworkClient* Sender, const std::string& Nickname, const std::string& Password);
+    bool _VerifyCredentials(CNetworkClient* Sender, const std::string& NicknameLowercased, const std::string& Password);
 };

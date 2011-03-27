@@ -2,7 +2,7 @@
  * PROJECT:    ReactOS Deutschland e.V. IRC System
  * LICENSE:    GNU GPL v2 or any later version as published by the Free Software Foundation
  *             with the additional exemption that compiling, linking, and/or using OpenSSL is allowed
- * COPYRIGHT:  Copyright 2010 ReactOS Deutschland e.V. <deutschland@reactos.org>
+ * COPYRIGHT:  Copyright 2010-2011 ReactOS Deutschland e.V. <deutschland@reactos.org>
  * AUTHORS:    Colin Finck <colin@reactos.org>
  */
 
@@ -47,6 +47,7 @@ private:
 
     inline void _Accept(boost::asio::ip::tcp::acceptor* Acceptor);
     void _AddAcceptor(const boost::asio::ip::tcp::acceptor::protocol_type& Protocol);
+    void _CheckForPresetNickname(CNetworkClient* Client);
     void _HandleNewConnection(boost::asio::ip::tcp::acceptor* Acceptor, const boost::system::error_code& ErrorCode);
     std::string _HandleSSLPassword() const;
     inline bool _IsUserRegistered(const CClient::UserState& ClientUserState);

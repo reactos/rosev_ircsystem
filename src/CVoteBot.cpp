@@ -2,7 +2,7 @@
  * PROJECT:    ReactOS Deutschland e.V. IRC System
  * LICENSE:    GNU GPL v2 or any later version as published by the Free Software Foundation
  *             with the additional exemption that compiling, linking, and/or using OpenSSL is allowed
- * COPYRIGHT:  Copyright 2010 ReactOS Deutschland e.V. <deutschland@reactos.org>
+ * COPYRIGHT:  Copyright 2010-2011 ReactOS Deutschland e.V. <deutschland@reactos.org>
  * AUTHORS:    Colin Finck <colin@reactos.org>
  */
 
@@ -116,29 +116,29 @@ CVoteBot::_ReceiveCommand_START(CClient* Sender)
         return;
     }
 
-    /* Save a copy of the currently present network clients, so that no one else can vote.
+    /* Collect all clients that may vote. These only include network clients with a status.
        If a client leaves during the vote, he is also excluded (see CVoteBot::SendIRCMessage). */
-    const std::set<CClient*>& Clients = m_Channel->GetClients();
-    for(std::set<CClient*>::const_iterator it = Clients.begin(); it != Clients.end(); ++it)
+    const std::map<CClient*, CChannel::ClientStatus>& Clients = m_Channel->GetClients();
+    for(std::map<CClient*, CChannel::ClientStatus>::const_iterator it = Clients.begin(); it != Clients.end(); ++it)
     {
-        if((*it)->IsNetworkClient())
+        if(it->first->IsNetworkClient() && it->second != CChannel::NoStatus)
         {
             /* Preselect the "Abstention" option for the client.
                If he casts his vote, it is simply overwritten. */
             CVoteBot::VoteParameters VoteParameter = {0};
-            m_Votes.insert(std::make_pair(*it, VoteParameter));
+            m_Votes.insert(std::make_pair(it->first, VoteParameter));
 
             /* Inform him about the question and the possible options.
                Deliberately use private messages instead of notices as latter ones can appear in channels when using clients like ChatZilla. */
-            (*it)->SendPrivateMessage(this, std::string(m_CurrentAdminNickname).append(" has set up a vote and I want your opinion."));
-            (*it)->SendPrivateMessage(this, std::string("Question: ").append(m_Question));
-            (*it)->SendPrivateMessage(this, "Possible options:");
+            it->first->SendPrivateMessage(this, std::string(m_CurrentAdminNickname).append(" has set up a vote and I want your opinion."));
+            it->first->SendPrivateMessage(this, std::string("Question: ").append(m_Question));
+            it->first->SendPrivateMessage(this, "Possible options:");
 
             for(size_t i = 0; i < m_Options.size(); ++i)
-                (*it)->SendPrivateMessage(this, boost::str(boost::format("   %u - %s") % i % m_Options[i]));
+                it->first->SendPrivateMessage(this, boost::str(boost::format("   %u - %s") % i % m_Options[i]));
 
-            (*it)->SendPrivateMessage(this, "Please send me the number of your option.");
-            (*it)->SendPrivateMessage(this, boost::str(boost::format("If you don't answer within %u minutes, your vote will be counted as \"%s\".") % m_TimeLimitInMinutes % m_AbstentionTranslation));
+            it->first->SendPrivateMessage(this, "Please send me the number of your option.");
+            it->first->SendPrivateMessage(this, boost::str(boost::format("If you don't answer within %u minutes, your vote will be counted as \"%s\".") % m_TimeLimitInMinutes % m_AbstentionTranslation));
         }
     }
 
@@ -149,7 +149,7 @@ CVoteBot::_ReceiveCommand_START(CClient* Sender)
     }
 
     /* Finally report this to the channel as well */
-    _SendToChannel(std::string(m_CurrentAdminNickname).append(" has set up a vote and I'm asking all of you in private messages now."));
+    _SendToChannel(std::string(m_CurrentAdminNickname).append(" has set up a vote and I'm asking all participating members in private messages now."));
 
     /* The vote process officially starts... now! */
     m_Timer.expires_from_now(boost::posix_time::minutes(m_TimeLimitInMinutes));
