@@ -67,7 +67,6 @@
 
 /* Forward declarations */
 class CChannel;
-class CChanServ;
 class CClient;
 class CConfiguration;
 class CIRCServer;
@@ -88,7 +87,6 @@ class CVoteBotManager;
 #include "CPlainNetworkClient.h"
 #include "CSSLNetworkClient.h"
 #include "CVirtualClient.h"
-#include "CChanServ.h"
 #include "CLogBot.h"
 #include "CNickServ.h"
 #include "CVoteBotManager.h"

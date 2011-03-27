@@ -401,14 +401,14 @@ CIRCServer::ReceiveMessage_JOIN(CClient* Sender, const std::vector<std::string>&
                     for(std::map<CClient*, CChannel::ClientStatus>::const_iterator ClientIt = Clients.begin(); ClientIt != Clients.end(); ++ClientIt)
                         ClientIt->first->SendIRCMessage(Response);
 
-                    /* Not very nice, but no nice workaround exists. We have no specifically look for ChanServ here and let it
-                       set the user mode. It can't just parse the SendIRCMessage call above, because we have to ensure that this
-                       happens after all other clients have received the JOIN message.
-                       At least, this allows us to directly pass parameters and not extract them from SendIRCMessage in CChanServ. */
-                    std::map<std::string, CClient*>::const_iterator NicknameIt = m_Nicknames.find("chanserv");
-                    assert(NicknameIt != m_Nicknames.end());
-                    CChanServ* ChanServ = static_cast<CChanServ*>(NicknameIt->second);
-                    ChanServ->SetClientModeInChannel(Sender, it->second);
+                    /* Publicly show the mode change */
+                    if(IsVoicedClient)
+                    {
+                        std::string Response(boost::str(boost::format(":%s MODE #%s +v %s") % m_Configuration.GetName() % it->second->GetName() % Sender->GetNickname()));
+
+                        for(std::map<CClient*, CChannel::ClientStatus>::const_iterator ClientIt = Clients.begin(); ClientIt != Clients.end(); ++ClientIt)
+                            ClientIt->first->SendIRCMessage(Response);
+                    }
 
                     /* Send the results of respective TOPIC and NAMES commands */
                     std::vector<std::string> CallParameters;

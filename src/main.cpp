@@ -15,7 +15,6 @@ static bool DeletePidFile = false;
 static CConfiguration Configuration;
 static boost::asio::io_service IOService;
 static CIRCServer IRCServer(IOService, Configuration);
-static CChanServ ChanServ(IRCServer);
 static CNickServ NickServ(IRCServer);
 static CLogBot LogBot(IRCServer);
 static CVoteBotManager VoteBotManager(IRCServer);
@@ -81,7 +80,6 @@ InitializeServer()
 #endif
 
     IRCServer.Init();
-    IRCServer.AddVirtualClient(&ChanServ);
     IRCServer.AddVirtualClient(&NickServ);
     IRCServer.AddVirtualClient(&LogBot);
     VoteBotManager.Init();

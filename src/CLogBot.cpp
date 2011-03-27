@@ -204,7 +204,11 @@ CLogBot::SendIRCMessage(const std::string& Message)
     /* Extract the lowercased sender name.
        We make use of the fact that the user name is always the lowercased sender name. */
     size_t Offset = Message.find_first_of('!');
-    assert(Offset != std::string::npos);
+
+    /* We may find no offset if the message comes from the server (like MODE messages) */
+    if(Offset == std::string::npos)
+        return;
+
     ++Offset;
     size_t Position = Message.find_first_of('@', Offset);
     assert(Position != std::string::npos);

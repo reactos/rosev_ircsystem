@@ -54,7 +54,6 @@ configure_file(
 # Also include header files as a project file might be generated
 set(SRCS
 	CChannel.h
-	CChanServ.h
 	CClient.h
 	CConfiguration.h
 	CIRCServer.h
@@ -72,7 +71,6 @@ set(SRCS
 	version.h.in
 
 	CChannel.cpp
-	CChanServ.cpp
 	CClient.cpp
 	CConfiguration.cpp
 	CIRCServer.cpp
