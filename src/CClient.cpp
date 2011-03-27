@@ -13,7 +13,7 @@ static const std::map<short, std::string> NumericReplyMessages = boost::assign::
     (RPL_WELCOME, ":Welcome to the %s Internet Relay Chat Network %s")
     (RPL_YOURHOST, ":Your host is %s, running version " VERSION_ID)
     (RPL_CREATED, ":This server was created " VERSION_DATE)
-    (RPL_MYINFO, "%s " VERSION_ID " i i")                   /* COMPATIBILITY: We don't support modes for real, so just give some dummy modes */
+    (RPL_MYINFO, "%s " VERSION_ID " iv i")                  /* Some dummy modes for COMPATIBILITY plus the real voice user mode. */
     (RPL_NOTOPIC, "#%s :No topic is set")
     (RPL_TOPIC, "#%s :%s")
     (RPL_VERSION, VERSION_ID ". %s :" PRODUCT_NAME)

@@ -67,6 +67,7 @@
 
 /* Forward declarations */
 class CChannel;
+class CChanServ;
 class CClient;
 class CConfiguration;
 class CIRCServer;
@@ -87,6 +88,7 @@ class CVoteBotManager;
 #include "CPlainNetworkClient.h"
 #include "CSSLNetworkClient.h"
 #include "CVirtualClient.h"
+#include "CChanServ.h"
 #include "CLogBot.h"
 #include "CNickServ.h"
 #include "CVoteBotManager.h"
@@ -102,10 +104,12 @@ extern void ShutdownServer(int Signal = 0);
 /* run_console.cpp */
 extern int RunInConsole();
 
+#ifdef WIN32
 /* run_nt_service.cpp */
 extern int InstallNTService(CConfiguration& Configuration);
 extern int RunAsNTService();
 extern int UninstallNTService();
-
+#else
 /* run_posix_daemon.cpp */
 extern int RunAsPosixDaemon();
+#endif

@@ -2,7 +2,7 @@
  * PROJECT:    ReactOS Deutschland e.V. IRC System
  * LICENSE:    GNU GPL v2 or any later version as published by the Free Software Foundation
  *             with the additional exemption that compiling, linking, and/or using OpenSSL is allowed
- * COPYRIGHT:  Copyright 2010 ReactOS Deutschland e.V. <deutschland@reactos.org>
+ * COPYRIGHT:  Copyright 2010-2011 ReactOS Deutschland e.V. <deutschland@reactos.org>
  * AUTHORS:    Colin Finck <colin@reactos.org>
  */
 
@@ -15,6 +15,7 @@ static bool DeletePidFile = false;
 static CConfiguration Configuration;
 static boost::asio::io_service IOService;
 static CIRCServer IRCServer(IOService, Configuration);
+static CChanServ ChanServ(IRCServer);
 static CNickServ NickServ(IRCServer);
 static CLogBot LogBot(IRCServer);
 static CVoteBotManager VoteBotManager(IRCServer);
@@ -80,6 +81,7 @@ InitializeServer()
 #endif
 
     IRCServer.Init();
+    IRCServer.AddVirtualClient(&ChanServ);
     IRCServer.AddVirtualClient(&NickServ);
     IRCServer.AddVirtualClient(&LogBot);
     VoteBotManager.Init();
