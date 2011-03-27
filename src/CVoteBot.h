@@ -28,6 +28,8 @@ private:
     CChannel* m_Channel;
     std::string m_ConfigID;
     std::string m_CurrentAdminNickname;
+    bool m_ExcludeCommandSent;
+    std::set<std::string> m_ExcludedNicknames;
     std::vector<std::string> m_Options;
     std::string m_Question;
     unsigned int m_TimeLimitInMinutes;
@@ -37,7 +39,9 @@ private:
     bool m_VoteStarted;
 
     void _CheckVotes();
+    bool _IsVotePrepared(CClient* Sender);
     void _ReceiveCommand_CANCEL(CClient* Sender);
+    void _ReceiveCommand_EXCLUDE(CClient* Sender);
     void _ReceiveCommand_HELP(CClient* Sender);
     void _ReceiveCommand_NEW(CClient* Sender);
     void _ReceiveCommand_START(CClient* Sender);

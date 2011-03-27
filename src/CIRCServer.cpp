@@ -572,7 +572,7 @@ CIRCServer::ReceiveMessage_NICK(CClient* Sender, const std::vector<std::string>&
         }
 
         /* ROSEV-SPECIFIC: Don't allow changing the nickname if the user has already joined a channel */
-        if(it->second->GetJoinedChannels().size() > 0)
+        if(!it->second->GetJoinedChannels().empty())
         {
             NetSender->SendNotice(NULL, "You cannot change your nickname after having joined a channel!");
             return;

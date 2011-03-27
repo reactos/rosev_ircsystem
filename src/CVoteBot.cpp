@@ -41,6 +41,25 @@ CVoteBot::_CheckVotes()
     }
 }
 
+bool
+CVoteBot::_IsVotePrepared(CClient* Sender)
+{
+    if(m_Question.empty())
+    {
+        Sender->SendPrivateMessage(this, "Please enter a question first. Type \"HELP\" for more information.");
+        return false;
+    }
+
+    /* Two options plus abstention are the minimum */
+    if(m_Options.size() < 3)
+    {
+        Sender->SendPrivateMessage(this, "Please enter at least two voting options. Type \"HELP\" for more information.");
+        return false;
+    }
+
+    return true;
+}
+
 void
 CVoteBot::_ReceiveCommand_CANCEL(CClient* Sender)
 {
@@ -61,6 +80,23 @@ CVoteBot::_ReceiveCommand_CANCEL(CClient* Sender)
 }
 
 void
+CVoteBot::_ReceiveCommand_EXCLUDE(CClient* Sender)
+{
+    if(m_VoteStarted)
+    {
+        Sender->SendPrivateMessage(this, "A vote is already running. You have to cancel it first if you want to prepare a new one.");
+        return;
+    }
+
+    /* All other aspects of the vote have to be prepared before we can exclude anybody. */
+    if(!_IsVotePrepared(Sender))
+        return;
+
+    Sender->SendPrivateMessage(this, "Please enter a user you want to exclude from voting or \"START\" to start the vote.");
+    m_ExcludeCommandSent = true;
+}
+
+void
 CVoteBot::_ReceiveCommand_HELP(CClient* Sender)
 {
     Sender->SendNotice(this, "***** VoteBot Help *****");
@@ -71,7 +107,8 @@ CVoteBot::_ReceiveCommand_HELP(CClient* Sender)
     Sender->SendNotice(this, "Just type \"NEW\" and I will ask you about your question and the possible vote options.");
     Sender->SendNotice(this, boost::str(boost::format("The \"%s\" option will automatically be added to the available options.") % m_AbstentionTranslation));
     Sender->SendNotice(this, "");
-    Sender->SendNotice(this, "When you're done, type \"START\" and I will put this question to all channel members in private messages.");
+    Sender->SendNotice(this, "After setting up the vote options, you may use \"EXCLUDE\" to exclude any nicknames from voting.");
+    Sender->SendNotice(this, "When you're done, type \"START\" and I will put this question to all participating members in private messages.");
     Sender->SendNotice(this, boost::str(boost::format("They have %u minutes to answer, otherwise their vote will be counted as \"%s\".") % m_TimeLimitInMinutes % m_AbstentionTranslation));
     Sender->SendNotice(this, "");
     Sender->SendNotice(this, "You can always cancel the question setup and even the running vote by typing \"CANCEL\".");
@@ -103,25 +140,15 @@ CVoteBot::_ReceiveCommand_NEW(CClient* Sender)
 void
 CVoteBot::_ReceiveCommand_START(CClient* Sender)
 {
-    if(m_Question.empty())
-    {
-        Sender->SendPrivateMessage(this, "Please enter a question first. Type \"HELP\" for more information.");
+    if(!_IsVotePrepared(Sender))
         return;
-    }
 
-    /* Two options plus abstention are the minimum */
-    if(m_Options.size() < 3)
-    {
-        Sender->SendPrivateMessage(this, "Please enter at least two voting options. Type \"HELP\" for more information.");
-        return;
-    }
-
-    /* Collect all clients that may vote. These only include network clients with a status.
+    /* Collect all clients that may vote. These only include network clients with a status, which are not in the list of excluded nicknames.
        If a client leaves during the vote, he is also excluded (see CVoteBot::SendIRCMessage). */
     const std::map<CClient*, CChannel::ClientStatus>& Clients = m_Channel->GetClients();
     for(std::map<CClient*, CChannel::ClientStatus>::const_iterator it = Clients.begin(); it != Clients.end(); ++it)
     {
-        if(it->first->IsNetworkClient() && it->second != CChannel::NoStatus)
+        if(it->first->IsNetworkClient() && it->second != CChannel::NoStatus && m_ExcludedNicknames.find(it->first->GetNicknameLowercased()) == m_ExcludedNicknames.end())
         {
             /* Preselect the "Abstention" option for the client.
                If he casts his vote, it is simply overwritten. */
@@ -144,12 +171,39 @@ CVoteBot::_ReceiveCommand_START(CClient* Sender)
 
     if(m_Votes.empty())
     {
-        Sender->SendPrivateMessage(this, "The channel has no members.");
+        Sender->SendPrivateMessage(this, "Nobody can participate in the vote. Resetting all values.");
+        _Reset();
         return;
     }
 
     /* Finally report this to the channel as well */
     _SendToChannel(std::string(m_CurrentAdminNickname).append(" has set up a vote and I'm asking all participating members in private messages now."));
+
+    if(!m_ExcludedNicknames.empty())
+    {
+        bool IsFirstExcludedNickname = true;
+        const std::map<std::string, CClient*>& Nicknames = m_IRCServer.GetNicknames();
+
+        for(std::set<std::string>::const_iterator ExcludedNicknameIt = m_ExcludedNicknames.begin(); ExcludedNicknameIt != m_ExcludedNicknames.end(); ++ExcludedNicknameIt)
+        {
+            /* Check if this nickname is logged in. */
+            std::map<std::string, CClient*>::const_iterator NicknameIt = Nicknames.find(*ExcludedNicknameIt);
+            if(NicknameIt != Nicknames.end())
+            {
+                /* Check if this nickname has also joined the channel and would participate otherwise. */
+                std::map<CClient*, CChannel::ClientStatus>::const_iterator ClientIt = Clients.find(NicknameIt->second);
+                if(ClientIt != Clients.end() && ClientIt->second != CChannel::NoStatus)
+                {
+                    if(IsFirstExcludedNickname)
+                        _SendToChannel("Excluded from voting:");
+
+                    /* Okay, show it as an excluded nickname. */
+                    _SendToChannel(std::string("   ").append(ClientIt->first->GetNickname()));
+                    IsFirstExcludedNickname = false;
+                }
+            }
+        }
+    }
 
     /* The vote process officially starts... now! */
     m_Timer.expires_from_now(boost::posix_time::minutes(m_TimeLimitInMinutes));
@@ -168,7 +222,7 @@ CVoteBot::_ReceiveVote(CClient* Sender, const std::string& PrivateMessage)
         return;
     }
 
-    /* Convert the vote into a 1-byte number */
+    /* Convert the vote into a number */
     std::istringstream VoteStream(PrivateMessage);
     size_t Number;
 
@@ -206,6 +260,8 @@ void
 CVoteBot::_Reset()
 {
     m_CurrentAdminNickname.clear();
+    m_ExcludeCommandSent = false;
+    m_ExcludedNicknames.clear();
     m_Options.clear();
     m_Question.clear();
     m_Timer.cancel();
@@ -358,7 +414,8 @@ CVoteBot::SendIRCMessage(const std::string& Message)
 void
 CVoteBot::SendPrivateMessage(CClient* Sender, const std::string& PrivateMessage)
 {
-    if(!Sender->GetUserState().IsIdentified)
+    const std::map< std::string, boost::array<char, SHA512_DIGEST_LENGTH> >& UserPasshashMap = m_IRCServer.GetConfiguration().GetUserPasshashMap();
+    if(UserPasshashMap.find(Sender->GetNicknameLowercased()) != UserPasshashMap.end() && !Sender->GetUserState().IsIdentified)
     {
         Sender->SendPrivateMessage(this, "Please identify first!");
         return;
@@ -381,7 +438,7 @@ CVoteBot::SendPrivateMessage(CClient* Sender, const std::string& PrivateMessage)
             _ReceiveCommand_HELP(Sender);
             return;
         }
-        else if(Command == "NEW" || Command == "START" || !m_VoteStarted)
+        else if(Command == "EXCLUDE" || Command == "NEW" || Command == "START" || !m_VoteStarted)
         {
             /* This stuff must be handled by a single administrator */
             if(!m_CurrentAdminNickname.empty() && m_CurrentAdminNickname != Sender->GetNickname())
@@ -391,7 +448,12 @@ CVoteBot::SendPrivateMessage(CClient* Sender, const std::string& PrivateMessage)
                 return;
             }
 
-            if(Command == "NEW")
+            if(Command == "EXCLUDE")
+            {
+                _ReceiveCommand_EXCLUDE(Sender);
+                return;
+            }
+            else if(Command == "NEW")
             {
                 _ReceiveCommand_NEW(Sender);
                 return;
@@ -410,11 +472,27 @@ CVoteBot::SendPrivateMessage(CClient* Sender, const std::string& PrivateMessage)
                     m_Question = PrivateMessage;
                     Sender->SendPrivateMessage(this, boost::str(boost::format("Please enter a vote option now. The \"%s\" option will automatically be added to the available options.") % m_AbstentionTranslation));
                 }
-                else if(!m_Question.empty())
+                else if(!m_Question.empty() && !m_ExcludeCommandSent)
                 {
                     /* The admin has just sent a voting option for the current vote */
                     m_Options.push_back(PrivateMessage);
-                    Sender->SendPrivateMessage(this, "This option has been added. Enter another one or \"START\" to start the vote.");
+                    Sender->SendPrivateMessage(this, "This option has been added. Enter another one, \"EXCLUDE\" to exclude nicknames from voting or \"START\" to start the vote.");
+                }
+                else if(m_ExcludeCommandSent)
+                {
+                    /* The admin has just sent a nickname to exclude from voting */
+                    std::string NicknameLowercased(PrivateMessage);
+                    std::transform(NicknameLowercased.begin(), NicknameLowercased.end(), NicknameLowercased.begin(), tolower);
+
+                    if(m_ExcludedNicknames.find(NicknameLowercased) == m_ExcludedNicknames.end())
+                    {
+                        m_ExcludedNicknames.insert(PrivateMessage);
+                        Sender->SendPrivateMessage(this, "This nickname has been added to the list of excluded users. Enter another one or \"START\" to start the vote.");
+                    }
+                    else
+                    {
+                        Sender->SendPrivateMessage(this, "This nickname has already been added to the list of excluded users. Enter another one or \"START\" to start the vote.");
+                    }
                 }
                 else
                 {
