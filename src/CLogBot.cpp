@@ -51,12 +51,13 @@ CLogBot::_LogMessage_JOIN(CClient* Sender, const std::vector<std::string>& Param
     assert(ClientIt != Clients.end());
 
     /* Finally log the message */
-    (*ChannelStreamIt->second) << boost::str(boost::format("%s %s has joined %s%s\n")
-        % _GetLogTimestamp()
-        % Sender->GetNickname()
-        % Parameters[0]
-        % (ClientIt->second == CChannel::Voice ? " with voice status" : "")
-    );
+    (*ChannelStreamIt->second) << boost::str(
+        boost::format("%s %s has joined %s%s\n")
+            % _GetLogTimestamp()
+            % Sender->GetNickname()
+            % Parameters[0]
+            % (ClientIt->second == CChannel::Voice ? " with voice status" : "")
+     ) << std::flush;
 }
 
 void
@@ -73,7 +74,7 @@ CLogBot::_LogMessage_PART(CClient* Sender, const std::vector<std::string>& Param
     /* Check if we log this channel and add a message in this case */
     boost::ptr_map<std::string, std::ofstream>::iterator ChannelStreamIt = m_ChannelStreamMap.find(ChannelNameLowercased);
     if(ChannelStreamIt != m_ChannelStreamMap.end())
-        (*ChannelStreamIt->second) << boost::str(boost::format("%s %s has left %s\n") % _GetLogTimestamp() % Sender->GetNickname() % Parameters[0]);
+        (*ChannelStreamIt->second) << boost::str(boost::format("%s %s has left %s\n") % _GetLogTimestamp() % Sender->GetNickname() % Parameters[0]) << std::flush;
 }
 
 void
@@ -92,7 +93,7 @@ CLogBot::_LogMessage_PRIVMSG(CClient* Sender, const std::vector<std::string>& Pa
     /* Check if we log this channel and add a message in this case */
     boost::ptr_map<std::string, std::ofstream>::iterator ChannelStreamIt = m_ChannelStreamMap.find(ChannelNameLowercased);
     if(ChannelStreamIt != m_ChannelStreamMap.end())
-        (*ChannelStreamIt->second) << boost::str(boost::format("%s <%s> %s\n") % _GetLogTimestamp() % Sender->GetNickname() % Parameters[1]);
+        (*ChannelStreamIt->second) << boost::str(boost::format("%s <%s> %s\n") % _GetLogTimestamp() % Sender->GetNickname() % Parameters[1]) << std::flush;
 }
 
 void
@@ -116,7 +117,7 @@ CLogBot::_LogMessage_QUIT(CClient* Sender, const std::vector<std::string>& Param
         if(JoinedChannels.find(const_cast<CChannel*>(ChannelIt->second)) != JoinedChannels.end())
         {
             /* The client is a member of this channel */
-            (*ChannelStreamIt->second) << LogMessage;
+            (*ChannelStreamIt->second) << LogMessage << std::flush;
         }
     }
 }
