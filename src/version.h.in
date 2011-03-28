@@ -2,7 +2,7 @@
 
 #define APPLICATION_NAME  "rosev_ircsystem"
 #define PRODUCT_NAME      "ReactOS Deutschland e.V. IRC System"
-#define VERSION_COPYRIGHT "Copyright 2010 ReactOS Deutschland e.V. <deutschland@reactos.org>"
+#define VERSION_COPYRIGHT "Copyright 2010-2011 ReactOS Deutschland e.V. <deutschland@reactos.org>"
 #define VERSION_DATE      __TIMESTAMP__
 #define VERSION_ID        APPLICATION_NAME "/" VERSION_STRING
 #define VERSION_MAJOR     @VERSION_MAJOR@
