@@ -490,7 +490,7 @@ CVoteBot::SendPrivateMessage(CClient* Sender, const std::string& PrivateMessage)
 
                     if(m_ExcludedNicknames.find(NicknameLowercased) == m_ExcludedNicknames.end())
                     {
-                        m_ExcludedNicknames.insert(PrivateMessage);
+                        m_ExcludedNicknames.insert(NicknameLowercased);
                         Sender->SendPrivateMessage(this, "This nickname has been added to the list of excluded users. Enter another one or \"START\" to start the vote.");
                     }
                     else
