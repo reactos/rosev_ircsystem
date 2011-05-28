@@ -347,7 +347,12 @@ CNetworkClient::Shutdown()
     m_Timer.cancel();
 
     boost::asio::ip::tcp::socket::lowest_layer_type& Socket = GetSocket();
-    Socket.shutdown(boost::asio::socket_base::shutdown_both);
+
+    /* Use the second overload of shutdown() to ignore any errors while shutting down the socket
+       (like endpoint being closed already). */
+    boost::system::error_code ErrorCode;
+    Socket.shutdown(boost::asio::socket_base::shutdown_both, ErrorCode);
+
     Socket.close();
 
     m_ShutdownCompleted = true;
