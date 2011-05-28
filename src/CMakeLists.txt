@@ -13,7 +13,7 @@ project(rosev_ircsystem)
 # External packages
 set(Boost_USE_STATIC_LIBS ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
-find_package(Boost 1.40 COMPONENTS date_time program_options system REQUIRED)
+find_package(Boost 1.44 COMPONENTS date_time program_options system REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(Subversion)
 
