@@ -58,9 +58,7 @@
 #define VOTEBOTMANAGER_FILE     PATH_SEPARATOR "VoteBotManager.ini"
 #define VOTEBOT_INDIVIDUAL_FILE PATH_SEPARATOR "VoteBot_%s.ini"
 
-/* Using typeid just in debug mode for checking the correct pointer types is still better than
-   a dynamic_cast, which requires RTTI also for the Release build.
-   We need this macro, because our method pointers can only use general CClient pointers. */
+/* We need this macro, because our method pointers can only use general CClient pointers. */
 #define TO_NETWORKCLIENT(ClientPointer, OutputPointer)  \
     assert(ClientPointer->IsNetworkClient());  \
     CNetworkClient* OutputPointer = static_cast<CNetworkClient*>(ClientPointer);
