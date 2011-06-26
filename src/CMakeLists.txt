@@ -28,11 +28,17 @@ set(VERSION_MINOR 0)
 # Subversion_WC_INFO cannot be used because it quits with an error if we're not in a working copy
 set(VERSION_REVISION 0)
 if(Subversion_SVN_EXECUTABLE)
+	# Run SVN in the C locale to guarantee English output
+	SET(_Subversion_SAVED_LC_ALL "$ENV{LC_ALL}")
+	SET(ENV{LC_ALL} C)
+	
 	execute_process(COMMAND
-		LANG=C ${Subversion_SVN_EXECUTABLE} info ${CMAKE_HOME_DIRECTORY}
+		${Subversion_SVN_EXECUTABLE} info ${CMAKE_HOME_DIRECTORY}
 		OUTPUT_VARIABLE SVNINFO_OUTPUT
 		RESULT_VARIABLE SVNINFO_RESULT
 	)
+	
+	SET(ENV{LC_ALL} ${_Subversion_SAVED_LC_ALL})
 	
 	if(${SVNINFO_RESULT} EQUAL 0)
 		string(REGEX REPLACE
