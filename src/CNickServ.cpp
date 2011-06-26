@@ -110,8 +110,15 @@ CNickServ::_ReceiveCommand_HELP(CNetworkClient* Sender, const std::vector<std::s
             Sender->SendNotice(this, "");
             Sender->SendNotice(this, "Syntax: IDENTIFY <password>");
             Sender->SendNotice(this, "");
+            Sender->SendNotice(this, "Like on FreeNode, you can also supply the password as the second parameter.");
+            Sender->SendNotice(this, "Note that the first parameter is ignored then as you can only identify for");
+            Sender->SendNotice(this, "your current nickname.");
+            Sender->SendNotice(this, "");
+            Sender->SendNotice(this, "Syntax: IDENTIFY <ignored> <password>");
+            Sender->SendNotice(this, "");
             Sender->SendNotice(this, "Example:");
             Sender->SendNotice(this, "   /NS IDENTIFY ThisIsMyRandomPassword");
+            Sender->SendNotice(this, "   /NS IDENTIFY BlaBlaBla ThisIsMyRandomPassword");
             Sender->SendNotice(this, "***** End of Help *****");
         }
     }
@@ -132,7 +139,10 @@ CNickServ::_ReceiveCommand_IDENTIFY(CNetworkClient* Sender, const std::vector<st
         return;
     }
 
-    if(!_VerifyCredentials(Sender, Sender->GetNicknameLowercased(), Parameters[0]))
+    /* Support FreeNode's alternative /NS IDENTIFY <nickname> <password> syntax instead of just
+       /NS IDENTIFY <password>, but only verify the supplied password against the current nickname. */
+    const std::string& Password = (Parameters.size() == 1 ? Parameters[0] : Parameters[1]);
+    if(!_VerifyCredentials(Sender, Sender->GetNicknameLowercased(), Password))
         return;
 
     /* The password is correct, so this user has successfully identified! */
