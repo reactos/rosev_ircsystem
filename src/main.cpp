@@ -37,6 +37,14 @@ _PrintUsage()
     std::cout << Configuration.GetCommandLineOptions();
 }
 
+#ifndef WIN32
+static void
+_SigHupHandler(int Signal)
+{
+    /* Do nothing as long as we don't implement reloading the configuration. This prevents abnormal terminations at least. */
+}
+#endif
+
 void
 Info(const char* Message, ...)
 {
@@ -138,6 +146,11 @@ main(int argc, char* argv[])
 void
 SetSignals()
 {
+#ifndef WIN32
+    /* SIGHUP is only supported on Unix machines and e.g. "service rosev_ircsystem reload" emits it. */
+    signal(SIGHUP, _SigHupHandler);
+#endif
+
     signal(SIGINT, ShutdownServer);
     signal(SIGTERM, ShutdownServer);
 }
