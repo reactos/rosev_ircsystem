@@ -255,7 +255,7 @@ CIRCServer::Init()
         const char* p = OptionIt->string_key.c_str();
         while(*p)
         {
-            if(!((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9') || (*p == '_') || (*p == '_')))
+            if(!((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9') || (*p == '-') || (*p == '_')))
                 BOOST_THROW_EXCEPTION(Error("Illegal channel name!") << ChannelName_Info(OptionIt->string_key));
 
             ++p;
