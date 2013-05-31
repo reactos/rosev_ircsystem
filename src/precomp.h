@@ -20,9 +20,11 @@
 #include <utility>
 #include <vector>
 
+#define BOOST_REGEX_NO_LIB
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/assign.hpp>
+#include <boost/bind.hpp>
 #include <boost/date_time.hpp>
 #include <boost/exception/all.hpp>
 #include <boost/format.hpp>
