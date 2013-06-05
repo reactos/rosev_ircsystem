@@ -2,7 +2,7 @@
  * PROJECT:    ReactOS Deutschland e.V. IRC System
  * LICENSE:    GNU GPL v2 or any later version as published by the Free Software Foundation
  *             with the additional exemption that compiling, linking, and/or using OpenSSL is allowed
- * COPYRIGHT:  Copyright 2010-2011 ReactOS Deutschland e.V. <deutschland@reactos.org>
+ * COPYRIGHT:  Copyright 2010-2013 ReactOS Deutschland e.V. <deutschland@reactos.org>
  * AUTHORS:    Colin Finck <colin@reactos.org>
  */
 
@@ -25,13 +25,13 @@ public:
     void Shutdown();
 
 protected:
-    char m_InputBuffer[2 * IRC_MESSAGE_LENGTH];
+    char m_InputBuffer[4 * IRC_MESSAGE_LENGTH + 1];     /** Must be a multiple of IRC_MESSAGE_LENGTH plus terminating NUL */
     char* m_InputBufferPointer;
     boost::shared_array<char> m_SendBuffer;
     size_t m_SendBufferSize;
     std::queue<std::string> m_SendQueue;
     bool m_ShutdownCompleted;
-    boost::asio::deadline_timer m_Timer;         /** For user registration, then identification, then ping timeouts */
+    boost::asio::deadline_timer m_Timer;                /** For user registration, then identification, then ping timeouts */
 
     CNetworkClient(boost::asio::io_service& IOService, CIRCServer& IRCServer);
 

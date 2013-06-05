@@ -2,7 +2,7 @@
  * PROJECT:    ReactOS Deutschland e.V. IRC System
  * LICENSE:    GNU GPL v2 or any later version as published by the Free Software Foundation
  *             with the additional exemption that compiling, linking, and/or using OpenSSL is allowed
- * COPYRIGHT:  Copyright 2010-2011 ReactOS Deutschland e.V. <deutschland@reactos.org>
+ * COPYRIGHT:  Copyright 2010-2013 ReactOS Deutschland e.V. <deutschland@reactos.org>
  * AUTHORS:    Colin Finck <colin@reactos.org>
  */
 
@@ -39,6 +39,9 @@ CNetworkClient::CNetworkClient(boost::asio::io_service& IOService, CIRCServer& I
 void
 CNetworkClient::_HandleNewData(const boost::system::error_code& ErrorCode, size_t BytesTransferred)
 {
+    /* BytesTransferred must be less than the remaining space in m_InputBuffer (consider terminating NUL!) */
+    assert(BytesTransferred < sizeof(m_InputBuffer) - (m_InputBufferPointer - m_InputBuffer));
+
     if(ErrorCode)
     {
         m_IRCServer.DisconnectNetworkClient(this, ErrorCode.message());
@@ -53,7 +56,7 @@ CNetworkClient::_HandleNewData(const boost::system::error_code& ErrorCode, size_
     char* IRCMessage = m_InputBuffer;
 
     /* p looks for message endings, so it can start after the remainder of the last call.
-       (if the remainder would have had line endings, it would have been processed and wouldn't be here) */
+       (if the remainder had line endings, it would have been processed and wouldn't be here) */
     char* p = m_InputBufferPointer;
 
     while(*p)
@@ -101,7 +104,7 @@ CNetworkClient::_HandleNewData(const boost::system::error_code& ErrorCode, size_
     /* Messages split between several calls must be smaller than IRC_MESSAGE_LENGTH, otherwise they would have been processed above.
        Larger messages are invalid and need to be discarded.
 
-       This also ensures that we don't run into buffer overflows in m_WorkBuffer.
+       This also ensures that we don't run into buffer overflows in m_InputBuffer.
        2 * IRC_MESSAGE_LENGTH is large enough to hold up to IRC_MESSAGE_LENGTH -1 from this call, IRC_MESSAGE_LENGTH from the next call
        and a final terminating NUL character. */
     if(p - IRCMessage >= IRC_MESSAGE_LENGTH)
