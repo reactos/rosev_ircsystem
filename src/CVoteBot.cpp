@@ -2,7 +2,7 @@
  * PROJECT:    ReactOS Deutschland e.V. IRC System
  * LICENSE:    GNU GPL v2 or any later version as published by the Free Software Foundation
  *             with the additional exemption that compiling, linking, and/or using OpenSSL is allowed
- * COPYRIGHT:  Copyright 2010-2011 ReactOS Deutschland e.V. <deutschland@reactos.org>
+ * COPYRIGHT:  Copyright 2010-2013 ReactOS Deutschland e.V. <deutschland@reactos.org>
  * AUTHORS:    Colin Finck <colin@reactos.org>
  */
 
@@ -131,6 +131,7 @@ CVoteBot::_ReceiveCommand_NEW(CClient* Sender)
     }
 
     Sender->SendPrivateMessage(this, boost::str(boost::format("Please enter the question you want to vote on in #%s.") % m_Channel->GetName()));
+    _Reset();
     m_Options.push_back(m_AbstentionTranslation);
 
     /* Lock the VoteBot administrator access to this administrator and indicate that we're waiting for the question by doing this */
