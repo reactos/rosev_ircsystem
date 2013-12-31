@@ -2,7 +2,7 @@
  * PROJECT:    ReactOS Deutschland e.V. IRC System
  * LICENSE:    GNU GPL v2 or any later version as published by the Free Software Foundation
  *             with the additional exemption that compiling, linking, and/or using OpenSSL is allowed
- * COPYRIGHT:  Copyright 2010-2011 ReactOS Deutschland e.V. <deutschland@reactos.org>
+ * COPYRIGHT:  Copyright 2010-2013 ReactOS Deutschland e.V. <deutschland@reactos.org>
  * AUTHORS:    Colin Finck <colin@reactos.org>
  */
 
@@ -124,7 +124,7 @@ CConfiguration::ReadConfigFiles()
     MotdStream.close();
 
     /* Users file */
-    boost::program_options::parsed_options UsersParsedOptions(boost::program_options::parse_config_file<char>(std::string(m_ConfigPath).append(USERS_FILE).c_str(), NULL, true));
+    boost::program_options::parsed_options UsersParsedOptions(boost::program_options::parse_config_file<char>(std::string(m_ConfigPath).append(USERS_FILE).c_str(), 0, true));
     for(std::vector< boost::program_options::basic_option<char> >::const_iterator it = UsersParsedOptions.options.begin(); it != UsersParsedOptions.options.end(); ++it)
     {
         /* Convert the hexadecimal string passhash into a binary one */

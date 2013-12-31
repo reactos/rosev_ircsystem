@@ -2,7 +2,7 @@
  * PROJECT:    ReactOS Deutschland e.V. IRC System
  * LICENSE:    GNU GPL v2 or any later version as published by the Free Software Foundation
  *             with the additional exemption that compiling, linking, and/or using OpenSSL is allowed
- * COPYRIGHT:  Copyright 2010-2011 ReactOS Deutschland e.V. <deutschland@reactos.org>
+ * COPYRIGHT:  Copyright 2010-2013 ReactOS Deutschland e.V. <deutschland@reactos.org>
  * AUTHORS:    Colin Finck <colin@reactos.org>
  */
 
@@ -208,7 +208,7 @@ CIRCServer::Init()
     std::string ConfigPath(m_Configuration.GetConfigPath());
     std::map< std::string, std::set<std::string> > ChannelUsersMap;
 
-    boost::program_options::parsed_options ChannelUsersParsedOptions(boost::program_options::parse_config_file<char>(std::string(ConfigPath).append(CHANNEL_USERS_FILE).c_str(), NULL, true));
+    boost::program_options::parsed_options ChannelUsersParsedOptions(boost::program_options::parse_config_file<char>(std::string(ConfigPath).append(CHANNEL_USERS_FILE).c_str(), 0, true));
     for(std::vector< boost::program_options::basic_option<char> >::const_iterator OptionIt = ChannelUsersParsedOptions.options.begin(); OptionIt != ChannelUsersParsedOptions.options.end(); ++OptionIt)
     {
         /* All config information is used for comparison, so lowercase it */
@@ -233,7 +233,7 @@ CIRCServer::Init()
     /* Check which channels allow observers. */
     std::set<std::string> ChannelObserversSet;
 
-    boost::program_options::parsed_options ChannelObserversParsedOptions(boost::program_options::parse_config_file<char>(std::string(ConfigPath).append(CHANNEL_OBSERVERS_FILE).c_str(), NULL, true));
+    boost::program_options::parsed_options ChannelObserversParsedOptions(boost::program_options::parse_config_file<char>(std::string(ConfigPath).append(CHANNEL_OBSERVERS_FILE).c_str(), 0, true));
     for(std::vector< boost::program_options::basic_option<char> >::const_iterator OptionIt = ChannelObserversParsedOptions.options.begin(); OptionIt != ChannelObserversParsedOptions.options.end(); ++OptionIt)
     {
         /* Lowercase the channel name for comparison */
@@ -245,7 +245,7 @@ CIRCServer::Init()
     }
 
     /* Add the preset channels */
-    boost::program_options::parsed_options ChannelsParsedOptions(boost::program_options::parse_config_file<char>(std::string(ConfigPath).append(CHANNELS_FILE).c_str(), NULL, true));
+    boost::program_options::parsed_options ChannelsParsedOptions(boost::program_options::parse_config_file<char>(std::string(ConfigPath).append(CHANNELS_FILE).c_str(), 0, true));
     if(ChannelsParsedOptions.options.empty())
         BOOST_THROW_EXCEPTION(Error("You need to specify at least one channel!"));
 
