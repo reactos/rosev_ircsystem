@@ -11,6 +11,6 @@ following credentials to log on to the IRC Server:
                    successful identification)
 
    Nickname:       NICKNAME
-   Passwort:       PASSWORD
+   Password:       PASSWORD
 
 You can identify using the well-known /NS IDENTIFY command.
