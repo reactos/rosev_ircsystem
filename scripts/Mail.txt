@@ -3,7 +3,7 @@ Hello,
 In order to participate in the upcoming ReactOS meeting, use the
 following credentials to log on to the IRC Server:
 
-   Server address: ircs://fezile.reactos.org
+   Server address: ircs://fezile.reactos.org:6697
                    (Hostname "fezile.reactos.org", Port 6697, SSL enabled)
 
    Channel:        #meeting
