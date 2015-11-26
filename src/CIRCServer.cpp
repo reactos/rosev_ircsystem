@@ -192,7 +192,7 @@ CIRCServer::Init()
         m_SSLContext.reset(new boost::asio::ssl::context(m_IOService, boost::asio::ssl::context::sslv23_server));
         m_SSLContext->set_options(boost::asio::ssl::context_base::default_workarounds | boost::asio::ssl::context_base::no_sslv2 | boost::asio::ssl::context_base::no_sslv3);
         m_SSLContext->set_password_callback(boost::bind(&CIRCServer::_HandleSSLPassword, this));
-        m_SSLContext->use_certificate_file(m_Configuration.GetSSLCertificateFile(), boost::asio::ssl::context::pem);
+        m_SSLContext->use_certificate_chain_file(m_Configuration.GetSSLCertificateFile());
         m_SSLContext->use_private_key_file(m_Configuration.GetSSLPrivateKeyFile(), boost::asio::ssl::context::pem);
 
         m_NextNetworkClient.reset(new CSSLNetworkClient(m_IOService, *this, *m_SSLContext.get()));
