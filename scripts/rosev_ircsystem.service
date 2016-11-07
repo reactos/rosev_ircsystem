@@ -1,0 +1,6 @@
+[Unit]
+Description=ReactOS Deutschland e.V. IRC System
+
+[Service]
+ExecStart=/usr/local/bin/rosev_ircsystem --daemon /srv/irc
+Type=forking
