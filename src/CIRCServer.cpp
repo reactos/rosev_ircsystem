@@ -2,7 +2,7 @@
  * PROJECT:    ReactOS Deutschland e.V. IRC System
  * LICENSE:    GNU GPL v2 or any later version as published by the Free Software Foundation
  *             with the additional exemption that compiling, linking, and/or using OpenSSL is allowed
- * COPYRIGHT:  Copyright 2010-2013 ReactOS Deutschland e.V. <deutschland@reactos.org>
+ * COPYRIGHT:  Copyright 2010-2017 ReactOS Deutschland e.V. <deutschland@reactos.org>
  * AUTHORS:    Colin Finck <colin@reactos.org>
  */
 
@@ -29,10 +29,6 @@ CIRCServer::_AddAcceptor(const boost::asio::ip::tcp::acceptor::protocol_type& Pr
 {
     boost::asio::ip::tcp::endpoint Endpoint(Protocol, m_Configuration.GetPort());
     std::auto_ptr<boost::asio::ip::tcp::acceptor> Acceptor(new boost::asio::ip::tcp::acceptor(m_IOService, Endpoint));
-
-    /* Disable dual-stack mode for the IPv6 acceptor as IPv4 addresses are already handled by our IPv4 acceptor. */
-    if(Protocol.family() == PF_INET6)
-        Acceptor->set_option(boost::asio::ip::v6_only(true));
 
     boost::system::error_code ErrorCode;
     Acceptor->listen(boost::asio::socket_base::max_connections, ErrorCode);
@@ -277,17 +273,16 @@ CIRCServer::Init()
         m_Channels.insert(ChannelNameLowercased, new CChannel(OptionIt->string_key, OptionIt->value[0], ChannelUsersIt->second, AllowObservers));
     }
 
-    /* Set up an acceptor for every IP stack (if desired) */
-    if(m_Configuration.DoUseIPv4())
-    {
-        _AddAcceptor(boost::asio::ip::tcp::v4());
-        Info("Listening on port %u for IPv4 connections.\n", m_Configuration.GetPort());
-    }
-
+    /* Set up an IPv6 acceptor for both protocols or an IPv4-exclusive acceptor. */
     if(m_Configuration.DoUseIPv6())
     {
         _AddAcceptor(boost::asio::ip::tcp::v6());
-        Info("Listening on port %u for IPv6 connections.\n", m_Configuration.GetPort());
+        Info("Listening on port %u for IPv4 and IPv6 connections.\n", m_Configuration.GetPort());
+    }
+    else
+    {
+        _AddAcceptor(boost::asio::ip::tcp::v4());
+        Info("Listening on port %u for IPv4 connections.\n", m_Configuration.GetPort());
     }
 
     /* Now we're online! */

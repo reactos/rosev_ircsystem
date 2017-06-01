@@ -2,7 +2,7 @@
  * PROJECT:    ReactOS Deutschland e.V. IRC System
  * LICENSE:    GNU GPL v2 or any later version as published by the Free Software Foundation
  *             with the additional exemption that compiling, linking, and/or using OpenSSL is allowed
- * COPYRIGHT:  Copyright 2010-2013 ReactOS Deutschland e.V. <deutschland@reactos.org>
+ * COPYRIGHT:  Copyright 2010-2017 ReactOS Deutschland e.V. <deutschland@reactos.org>
  * AUTHORS:    Colin Finck <colin@reactos.org>
  */
 
@@ -94,7 +94,6 @@ CConfiguration::ReadConfigFiles()
 #endif
         ("general.name", boost::program_options::value<std::string>(&m_Name)->default_value(""))
         ("general.port", boost::program_options::value<unsigned short>(&m_Port)->default_value(0))
-        ("general.use_ipv4", boost::program_options::value<bool>(&m_UseIPv4)->default_value(false))
         ("general.use_ipv6", boost::program_options::value<bool>(&m_UseIPv6)->default_value(false))
         ("ssl.certificate", boost::program_options::value<std::string>(&m_SSLCertificateFile)->default_value(""))
         ("ssl.privatekey", boost::program_options::value<std::string>(&m_SSLPrivateKeyFile)->default_value(""))
@@ -150,9 +149,6 @@ CConfiguration::ReadConfigFiles()
 
     if(m_Port == 0)
         BOOST_THROW_EXCEPTION(Error("You need to specify a port to listen on!"));
-
-    if(!m_UseIPv4 && !m_UseIPv6)
-        BOOST_THROW_EXCEPTION(Error("You need to enable either IPv4 or IPv6 (or both)!"));
 
 #ifndef WIN32
     if(m_PidFile.empty())

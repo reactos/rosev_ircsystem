@@ -2,7 +2,7 @@
  * PROJECT:    ReactOS Deutschland e.V. IRC System
  * LICENSE:    GNU GPL v2 or any later version as published by the Free Software Foundation
  *             with the additional exemption that compiling, linking, and/or using OpenSSL is allowed
- * COPYRIGHT:  Copyright 2010-2011 ReactOS Deutschland e.V. <deutschland@reactos.org>
+ * COPYRIGHT:  Copyright 2010-2017 ReactOS Deutschland e.V. <deutschland@reactos.org>
  * AUTHORS:    Colin Finck <colin@reactos.org>
  */
 
@@ -20,7 +20,6 @@ public:
     bool BeVerbose() const { return m_Verbose; }
     bool DoPrintVersion() const { return m_PrintVersion; }
     bool DoRunAsDaemonService() const { return m_RunAsDaemonService; }
-    bool DoUseIPv4() const { return m_UseIPv4; }
     bool DoUseIPv6() const { return m_UseIPv6; }
     bool DoUseSSL() const { return m_UseSSL; }
     const boost::program_options::options_description& GetCommandLineOptions() const { return m_CommandLineOptions; }
@@ -51,7 +50,6 @@ private:
     std::string m_SSLCertificateFile;
     std::string m_SSLPrivateKeyFile;
     bool m_Verbose;
-    bool m_UseIPv4;
     bool m_UseIPv6;
     std::map< std::string, boost::array<char, SHA512_DIGEST_LENGTH> > m_UserPasshashMap;
     bool m_UseSSL;
