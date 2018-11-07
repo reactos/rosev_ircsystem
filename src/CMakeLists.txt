@@ -31,15 +31,15 @@ if(Subversion_SVN_EXECUTABLE)
 	# Run SVN in the C locale to guarantee English output
 	SET(_Subversion_SAVED_LC_ALL "$ENV{LC_ALL}")
 	SET(ENV{LC_ALL} C)
-	
+
 	execute_process(COMMAND
 		${Subversion_SVN_EXECUTABLE} info ${CMAKE_HOME_DIRECTORY}
 		OUTPUT_VARIABLE SVNINFO_OUTPUT
 		RESULT_VARIABLE SVNINFO_RESULT
 	)
-	
+
 	SET(ENV{LC_ALL} ${_Subversion_SAVED_LC_ALL})
-	
+
 	if(${SVNINFO_RESULT} EQUAL 0)
 		string(REGEX REPLACE
 			"^(.*\n)?Revision: ([^\n]+).*"
@@ -114,7 +114,7 @@ if(WIN32)
 		main.rc
 		run_nt_service.cpp
 	)
-	
+
 	# The resource file
 	if(NOT MSVC)
 		# windres needs to be added as an RC compiler
@@ -123,7 +123,7 @@ if(WIN32)
 		set(CMAKE_RC_COMPILE_OBJECT "windres <FLAGS> <DEFINES> -O coff -o <OBJECT> <SOURCE>")
 		enable_language(RC)
 	endif()
-	
+
 	# The message file
 	set(MESSAGEFILE messages)
 	set(MESSAGEFILE_OUTPUT ${PROJECT_BINARY_DIR}/${MESSAGEFILE}.h ${PROJECT_BINARY_DIR}/${MESSAGEFILE}.rc)
@@ -132,7 +132,7 @@ if(WIN32)
 	else()
 		set(MESSAGECOMPILER windmc)
 	endif()
-	
+
 	add_custom_command(
 		OUTPUT ${MESSAGEFILE_OUTPUT}
 		COMMAND ${MESSAGECOMPILER} ${MESSAGEFILE}.mc -h ${PROJECT_BINARY_DIR} -r ${PROJECT_BINARY_DIR}
@@ -141,12 +141,12 @@ if(WIN32)
 	)
 	set_source_files_properties(${MESSAGEFILE_OUTPUT}	PROPERTIES GENERATED TRUE)
 	set_source_files_properties(run_nt_service.cpp PROPERTIES OBJECT_DEPENDS "${MESSAGEFILE_OUTPUT}")
-	
+
 	list(APPEND LIBS
 		mswsock
 		ws2_32
 	)
-	
+
 	# Precompiled header preparations for MSVC
 	if(MSVC)
 		# Write a dummy file which we use for creating the precompiled header with the /Yc compiler flag
@@ -158,7 +158,7 @@ if(WIN32)
 		)
 		list(APPEND SRCS ${DUMMYPCHFILE})
 	endif()
-	
+
 	list(APPEND DEFS
 		-D_WIN32_WINNT=0x0501
 		-D_CRT_SECURE_NO_WARNINGS
@@ -185,11 +185,11 @@ else()
 	# Otherwise additional optimization values are provided over a method I don't know and the generated PCH is invalid and ignored.
 	set(PCHFILE_COPY ${PROJECT_BINARY_DIR}/${PCHFILE})
 	set(PCHFILE_OUTPUT ${PROJECT_BINARY_DIR}/${PCHFILE}.gch)
-	
+
 	foreach(item ${INCDIRS})
 		list(APPEND INCFLAGS "-I${item}")
 	endforeach()
-	
+
 	# The precompiled header needs to be in the same directory as the original header, so copy the original header
 	add_custom_command(
 		OUTPUT ${PCHFILE_COPY}
@@ -205,5 +205,5 @@ else()
 	)
 	set_source_files_properties(${PCHFILE_COPY} ${PCHFILE_OUTPUT} PROPERTIES GENERATED TRUE)
 	add_custom_target(gcc_pch_creator DEPENDS ${PCHFILE_OUTPUT})
-	add_dependencies(rosev_ircsystem gcc_pch_creator)		
+	add_dependencies(rosev_ircsystem gcc_pch_creator)
 endif()
