@@ -1,7 +1,7 @@
 # PROJECT:    ReactOS Deutschland e.V. IRC System
 # LICENSE:    GNU GPL v2 or any later version as published by the Free Software Foundation
 #             with the additional exemption that compiling, linking, and/or using OpenSSL is allowed
-# COPYRIGHT:  Copyright 2010-2011 ReactOS Deutschland e.V. <deutschland@reactos.org>
+# COPYRIGHT:  Copyright 2010-2018 ReactOS Deutschland e.V. <deutschland@reactos.org>
 # AUTHORS:    Colin Finck <colin@reactos.org>
 
 # CMake build file for rosev_ircsystem
@@ -15,38 +15,29 @@ set(Boost_USE_STATIC_LIBS ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 find_package(Boost 1.44 COMPONENTS date_time program_options system REQUIRED)
 find_package(OpenSSL REQUIRED)
-find_package(Subversion)
 
 # Directories
 set(PROJECT_BINARY_DIR ${CMAKE_BINARY_DIR}/CMakeFiles/custom)
 
 # Version number
 set(VERSION_MAJOR 1)
-set(VERSION_MINOR 0)
+set(VERSION_MINOR 1)
 
-# Try to get the revision number
-# Subversion_WC_INFO cannot be used because it quits with an error if we're not in a working copy
+# Try to get the revision number (number of revisions in this Git branch)
 set(VERSION_REVISION 0)
-if(Subversion_SVN_EXECUTABLE)
-	# Run SVN in the C locale to guarantee English output
-	SET(_Subversion_SAVED_LC_ALL "$ENV{LC_ALL}")
-	SET(ENV{LC_ALL} C)
-
-	execute_process(COMMAND
-		${Subversion_SVN_EXECUTABLE} info ${CMAKE_HOME_DIRECTORY}
-		OUTPUT_VARIABLE SVNINFO_OUTPUT
-		RESULT_VARIABLE SVNINFO_RESULT
-	)
-
-	SET(ENV{LC_ALL} ${_Subversion_SAVED_LC_ALL})
-
-	if(${SVNINFO_RESULT} EQUAL 0)
-		string(REGEX REPLACE
-			"^(.*\n)?Revision: ([^\n]+).*"
-			"\\2"
-			VERSION_REVISION
-			${SVNINFO_OUTPUT}
+if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+	find_package(Git)
+	if(GIT_FOUND)
+		execute_process(
+			COMMAND "${GIT_EXECUTABLE}" rev-list HEAD --count
+			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+			OUTPUT_VARIABLE GIT_REVISION_COUNT
+			RESULT_VARIABLE GIT_CALL_RESULT
+			OUTPUT_STRIP_TRAILING_WHITESPACE
 		)
+		if(GIT_CALL_RESULT EQUAL 0)
+			set(VERSION_REVISION "${GIT_REVISION_COUNT}")
+		endif()
 	endif()
 endif()
 
