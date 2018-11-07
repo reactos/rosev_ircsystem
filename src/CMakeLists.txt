@@ -207,3 +207,6 @@ else()
 	add_custom_target(gcc_pch_creator DEPENDS ${PCHFILE_OUTPUT})
 	add_dependencies(rosev_ircsystem gcc_pch_creator)
 endif()
+
+# rosev_ircsystem was written in C++98 and newer standards may be incompatible.
+set_property(TARGET rosev_ircsystem PROPERTY CXX_STANDARD 98)
