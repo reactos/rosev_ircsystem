@@ -2,7 +2,7 @@
  * PROJECT:    ReactOS Deutschland e.V. IRC System
  * LICENSE:    GNU GPL v2 or any later version as published by the Free Software Foundation
  *             with the additional exemption that compiling, linking, and/or using OpenSSL is allowed
- * COPYRIGHT:  Copyright 2010-2013 ReactOS Deutschland e.V. <deutschland@reactos.org>
+ * COPYRIGHT:  Copyright 2010-2018 ReactOS Deutschland e.V. <deutschland@reactos.org>
  * AUTHORS:    Colin Finck <colin@reactos.org>
  */
 
@@ -17,6 +17,7 @@ static const std::map<std::string, void (CIRCServer::*)(CClient*, const std::vec
     ("MOTD", &CIRCServer::ReceiveMessage_MOTD)
     ("NAMES", &CIRCServer::ReceiveMessage_NAMES)
     ("NICK", &CIRCServer::ReceiveMessage_NICK)
+    ("NICKSERV", &CIRCServer::ReceiveMessage_NS)
     /* "NOTICE" was deliberately left out here, we don't want to receive notices from network clients. */
     ("NS", &CIRCServer::ReceiveMessage_NS)
     ("PART", &CIRCServer::ReceiveMessage_PART)
