@@ -25,7 +25,7 @@ set(VERSION_MINOR 1)
 
 # Try to get the revision number (number of revisions in this Git branch)
 set(VERSION_REVISION 0)
-if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+if(EXISTS "${CMAKE_SOURCE_DIR}/../.git")
 	find_package(Git)
 	if(GIT_FOUND)
 		execute_process(
