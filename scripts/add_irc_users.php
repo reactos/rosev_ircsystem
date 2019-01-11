@@ -26,7 +26,6 @@
 		"ö" => "oe",
 		"ü" => "ue",
 		"ß" => "ss",
-		"'" => "",
 	);
 
 	// Get the mail template
@@ -50,6 +49,7 @@
 		// Convert all special characters in the Common Name to IRC-compatible ASCII
 		$nickname = strtr($info[$i]["displayname"][0], $nickname_replacements);
 		$nickname = iconv("UTF-8", "ASCII//TRANSLIT", $nickname);
+		$nickname = preg_replace("#[^A-Za-z_]#", "", $nickname);
 
 		$password = "";
 		for($j = 0; $j < PASSWORD_LENGTH; $j++)
